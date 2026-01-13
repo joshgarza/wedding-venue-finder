@@ -1,5 +1,6 @@
 // src/pipeline/stage_collect.ts
 import path from "node:path";
+import fs from "node:fs";
 import { Stage } from "./stages.js";
 import { createWriter, postOverpass } from "../utils/index.js"; // adjust path
 // You already have parseBBox + overpassQuery in main; here we assume ctx.overpass.query is provided.
@@ -8,7 +9,8 @@ export const collectStage: Stage = {
   name: "collect",
   async run(ctx) {
     const outFile = path.join(ctx.dataDir, "00_candidates.ndjson");
-    const writer = createWriter(outFile);
+    const tmp = `${outFile}.tmp`;
+    const writer = createWriter(tmp);
 
     const { data, endpoint } = await postOverpass(ctx.overpass.endpoints, ctx.overpass.query);
     process.stderr.write(`overpass endpoint: ${endpoint}\n`);
@@ -32,7 +34,8 @@ export const collectStage: Stage = {
       );
     }
 
-    writer.close();
+    await writer.close();
+    fs.renameSync(tmp, outFile);
     process.stderr.write(`Fetched ${elements.length} elements for bbox ${ctx.bboxRaw}\n`);
 
     return { outFile, nextInputFile: outFile };

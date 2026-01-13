@@ -49,7 +49,13 @@ export function createWriter(outPath?: string) {
 
   return {
     write: (line: string) => stream.write(line),
-    close: () => stream.end(),
+    close: async () => {
+	stream.end();
+	await new Promise<void>((resolve, reject) => {
+		stream.on("finish", resolve);
+		stream.on("error", reject);
+        });
+    }
   };
 }
 

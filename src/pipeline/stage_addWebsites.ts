@@ -11,10 +11,12 @@ export const addWebsitesStage: Stage = {
     if (!inputFile) throw new Error("addWebsites requires inputFile");
 
     const outFile = path.join(ctx.dataDir, "01_with_websites.ndjson");
+    const tmp = `${outFile}.tmp`;
     const missingFile = path.join(ctx.dataDir, "01_missing_websites.ndjson");
+    const tmpMissing = `${missingFile}.tmp`;
 
-    const out = createWriter(outFile);
-    const missing = createWriter(missingFile);
+    const out = createWriter(tmp);
+    const missing = createWriter(tmpMissing);
 
     const rl = readline.createInterface({
       input: fs.createReadStream(inputFile, { encoding: "utf8" }),
@@ -42,8 +44,11 @@ export const addWebsitesStage: Stage = {
       if (!website) missing.write(JSON.stringify(updated) + "\n");
     }
 
-    out.close();
-    missing.close();
+    await out.close();
+    await missing.close();
+
+    fs.renameSync(tmp, outFile);
+    fs.renameSync(tmpMissing, missingFile);
 
     return { outFile, nextInputFile: outFile, extraFiles: [missingFile] };
   },

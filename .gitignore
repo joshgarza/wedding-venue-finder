@@ -1,1 +1,2 @@
-venues.ndjson
+*.ndjson
+data/

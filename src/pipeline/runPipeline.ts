@@ -26,7 +26,8 @@ export async function runPipeline(ctx: PipelineCtx, stages: Stage[]) {
     if (res.extraFiles?.length) {
       for (const f of res.extraFiles) process.stderr.write(`wrote: ${f}\n`);
     }
-
+    
+    console.log('Checking res before writing to public/venues.ndjson', res.outFile);
     // keep frontend always pointing at the newest output
     copyToPublic(res.outFile, ctx.publicOut);
     process.stderr.write(`updated: ${ctx.publicOut}\n`);
