@@ -1,5 +1,14 @@
 // src/pipeline/stages.ts
+export type BBox = {
+  minLon: number;
+  minLat: number;
+  maxLon: number;
+  maxLat: number;
+};
+
+
 export type PipelineCtx = {
+  tiles?: BBox[]
   bboxRaw: string;
   // where we write artifacts
   dataDir: string;       // e.g. "data"
@@ -7,7 +16,8 @@ export type PipelineCtx = {
   // Overpass only needed for collect
   overpass: {
     endpoints: string[];
-    query: string;
+    queryForBBox: (bbox: BBox) => string;
+    delayMx?: number;
   };
 };
 

@@ -3,7 +3,47 @@ import process from "node:process";
 import fs from "node:fs";
 import path from "node:path";
 
-type BBox = { west: number; south: number; east: number; north: number };
+type BBox = { 
+	minLon: number; 
+	minLat: number; 
+	maxLon: number; 
+	maxLat: number 
+};
+
+export function tileBBox(
+  bbox: BBox,
+  tileSizeDeg: number
+): BBox[] {
+  const tiles: BBox[] = [];
+  console.log(bbox, tileSizeDeg);
+  if (tileSizeDeg <= 0) {
+    throw new Error("tileSizeDeg must be > 0");
+  }
+
+  for (
+    let lat = bbox.minLat;
+    lat < bbox.maxLat;
+    lat += tileSizeDeg
+  ) {
+    const nextLat = Math.min(lat + tileSizeDeg, bbox.maxLat);
+    
+    for (
+      let lon = bbox.minLon;
+      lon < bbox.maxLon;
+      lon += tileSizeDeg
+    ) {
+      const nextLon = Math.min(lon + tileSizeDeg, bbox.maxLon);
+
+      tiles.push({
+        minLon: lon,
+        minLat: lat,
+        maxLon: nextLon,
+        maxLat: nextLat,
+      });
+    }
+  }
+  return tiles;
+}
 
 export function getArg(name: string): string | undefined {
   const idx = process.argv.indexOf(`--${name}`);
@@ -14,23 +54,29 @@ export function getArg(name: string): string | undefined {
 export function parseBBox(raw: string): BBox {
   const parts = raw.split(",").map((s) => Number(s.trim()));
   if (parts.length !== 4 || parts.some((n) => Number.isNaN(n))) {
-    throw new Error(`Invalid --bbox. Expected "west,south,east,north" as numbers.`);
+    throw new Error(`Invalid --bbox. Expected "minLon,minLat,maxLon,maxLat" as numbers.`);
   }
-  const [west, south, east, north] = parts;
-  if (!(west < east) || !(south < north)) {
-    throw new Error(`Invalid --bbox. Must satisfy west < east and south < north.`);
+  const [minLon, minLat, maxLon, maxLat] = parts;
+  if (!(minLon < maxLon) || !(minLat < maxLat)) {
+    throw new Error(`Invalid --bbox. Must satisfy minLon < maxLon and minLat < maxLat.`);
   }
-  return { west, south, east, north };
+  return { minLon, minLat, maxLon, maxLat };
+}
+
+export function bboxToOverpass(b: { minLat: number; minLon: number; maxLat: number; maxLon: number }): string {
+  // Overpass bbox order is: (south, west, north, east) => (minLat, minLon, maxLat, maxLon)
+  return `(${b.minLat},${b.minLon},${b.maxLat},${b.maxLon})`;
 }
 
 export function overpassQuery(b: BBox) {
-  const bbox = `${b.south},${b.west},${b.north},${b.east}`; // S,W,N,E
+  const bbox = bboxToOverpass(b);
+
   return `
 [out:json][timeout:60];
 (
-  node["amenity"="events_venue"](${bbox});
-  way["amenity"="events_venue"](${bbox});
-  relation["amenity"="events_venue"](${bbox});
+  node["amenity"="events_venue"]${bbox};
+  way["amenity"="events_venue"]${bbox};
+  relation["amenity"="events_venue"]${bbox};
 );
 out body center;
 `.trim();
