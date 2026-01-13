@@ -15,7 +15,6 @@ export function tileBBox(
   tileSizeDeg: number
 ): BBox[] {
   const tiles: BBox[] = [];
-  console.log(bbox, tileSizeDeg);
   if (tileSizeDeg <= 0) {
     throw new Error("tileSizeDeg must be > 0");
   }
@@ -123,7 +122,6 @@ export async function postOverpass(endpoints: string[], query: string) {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded;charset=UTF-8",
-          // Good practice for public Overpass instances
           "user-agent": "wedding-venue-finder/0.1 (personal use)",
         },
         body,
