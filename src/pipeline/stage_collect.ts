@@ -1,6 +1,5 @@
-import path from "node:path";
-import type { Stage } from "./stages.js";
-import { postOverpass, sleep } from "../utils/index.js";
+import type { Stage } from "./stages";
+import { postOverpass, sleep } from "../utils/index";
 
 export const collectStage: Stage = {
   name: "collect",
@@ -61,7 +60,6 @@ export const collectStage: Stage = {
 
     process.stderr.write(`collect: elements=${totalElements} upserted=${totalUpdated}\n`);
 
-    // We no longer need an outFile for the next stage, but we return a dummy to satisfy the interface
-    return { outFile: "database_sync_complete" };
+    return { success: true };
   },
 };

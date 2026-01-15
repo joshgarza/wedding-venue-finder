@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 import knex from "knex";
 import knexConfig from "../knexfile";
-import { getArg, parseBBox, overpassQuery, tileBBox } from "../src/utils/index.js";
-import { runPipeline } from "../src/pipeline/runPipeline.js";
-import { collectStage } from "../src/pipeline/stage_collect.js";
-import type { BBox } from "../src/pipeline/stages.ts";
+import { getArg, parseBBox, overpassQuery, tileBBox } from "../src/utils/index";
+import { runPipeline } from "../src/pipeline/runPipeline";
+import { collectStage } from "../src/pipeline/stage_collect";
+import type { BBox } from "../src/pipeline/stages";
 
 const california: BBox = {
 	minLon: -124.409591,
@@ -34,8 +34,6 @@ async function main() {
 	const ctx = {
 		db,
 		bboxRaw,
-		dataDir: "data",
-		publicOut: "frontend/public/venues.ndjson",
 		tiles,
 		overpass: {
 		endpoints: [

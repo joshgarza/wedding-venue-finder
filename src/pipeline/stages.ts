@@ -21,13 +21,11 @@ export type PipelineCtx = {
 };
 
 export type StageResult = {
-	outFile: string;        // staged artifact path (e.g. data/01_with_websites.ndjson)
-	nextInputFile: string;  // usually same as outFile
-	extraFiles?: string[];  // e.g. missing websites file
+  success: boolean;
 };
 
 export type Stage = {
 	name: string;
-	run: (ctx: PipelineCtx, inputFile?: string) => Promise<StageResult>;
+	run: (ctx: PipelineCtx) => Promise<StageResult>;
 };
 

@@ -6,8 +6,8 @@ const config: { [key: string]: Knex.Config } = {
     connection: {
       host: '127.0.0.1',
       user: 'postgres',
-      password: 'your_password',
-      database: 'my_spatial_db'
+      password: 'postgres',
+      database: 'wedding_venue_finder'
     },
     migrations: {
       directory: './migrations',
