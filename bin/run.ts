@@ -5,49 +5,49 @@ import { collectStage } from "../src/pipeline/stage_collect.js";
 import type { BBox } from "../src/pipeline/stages.ts";
 
 const california: BBox = {
-  minLon: -124.409591,
-  minLat: 32.534156,
-  maxLon: -114.131211,
-  maxLat: 42.009518,
+	minLon: -124.409591,
+	minLat: 32.534156,
+	maxLon: -114.131211,
+	maxLat: 42.009518,
 };
 
 async function main() {
-  // allow override, default to CA
-  const bboxRaw =
-    getArg("bbox") ??
-    `${california.minLon},${california.minLat},${california.maxLon},${california.maxLat}`;
+	// allow override, default to CA
+	const bboxRaw =
+		getArg("bbox") ??
+		`${california.minLon},${california.minLat},${california.maxLon},${california.maxLat}`;
 
-  const bbox = parseBBox(bboxRaw);
+	const bbox = parseBBox(bboxRaw);
 
-  // tiles come from the bbox we’ll crawl
-  const tileDeg = Number(getArg("tileDeg") ?? "0.5");
-  const tiles = tileBBox(bbox, tileDeg);
+	// tiles come from the bbox we’ll crawl
+	const tileDeg = Number(getArg("tileDeg") ?? "0.5");
+	const tiles = tileBBox(bbox, tileDeg);
 
-  const ctx = {
-    bboxRaw,
-    dataDir: "data",
-    publicOut: "frontend/public/venues.ndjson",
-    tiles,
-    overpass: {
-      endpoints: [
-        "https://overpass-api.de/api/interpreter",
-        "https://overpass.private.coffee/api/interpreter",
-        "https://overpass.osm.jp/api/interpreter",
-      ],
-      queryForBBox: overpassQuery,
-      delayMs: 1000,
-    },
-  };
+	const ctx = {
+		bboxRaw,
+		dataDir: "data",
+		publicOut: "frontend/public/venues.ndjson",
+		tiles,
+		overpass: {
+		endpoints: [
+			"https://overpass-api.de/api/interpreter",
+			"https://overpass.private.coffee/api/interpreter",
+			"https://overpass.osm.jp/api/interpreter",
+		],
+		queryForBBox: overpassQuery,
+		delayMs: 1000,
+		},
+	};
 
-  const stages = [
-    collectStage,
-  ];
+	const stages = [
+		collectStage,
+	];
 
-  await runPipeline(ctx, stages);
+	await runPipeline(ctx, stages);
 }
 
 main().catch((err) => {
-  console.error(err);
-  process.exitCode = 1;
+	console.error(err);
+	process.exitCode = 1;
 });
 
