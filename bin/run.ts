@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import knex from "knex";
+import knexConfig from "../knexfile";
 import { getArg, parseBBox, overpassQuery, tileBBox } from "../src/utils/index.js";
 import { runPipeline } from "../src/pipeline/runPipeline.js";
 import { collectStage } from "../src/pipeline/stage_collect.js";
@@ -11,19 +13,26 @@ const california: BBox = {
 	maxLat: 42.009518,
 };
 
+const testSF: BBox = {
+  minLon: -122.4100, // West
+  minLat: 37.7850,   // South
+  maxLon: -122.3950, // East
+  maxLat: 37.7950,   // North
+};
+
 async function main() {
-	// allow override, default to CA
-	const bboxRaw =
-		getArg("bbox") ??
-		`${california.minLon},${california.minLat},${california.maxLon},${california.maxLat}`;
+	const db = knex(knexConfig.development);
+  const defaultBbox = `${testSF.minLon},${testSF.minLat},${testSF.maxLon},${testSF.maxLat}`;
+  
+  const bboxRaw = getArg("bbox") ?? defaultBbox;
+  const bbox = parseBBox(bboxRaw);
 
-	const bbox = parseBBox(bboxRaw);
-
-	// tiles come from the bbox we’ll crawl
-	const tileDeg = Number(getArg("tileDeg") ?? "0.5");
-	const tiles = tileBBox(bbox, tileDeg);
+  // Keep tileDeg small enough that this tiny box results in only 1 or 2 tiles
+  const tileDeg = Number(getArg("tileDeg") ?? "0.01"); 
+  const tiles = tileBBox(bbox, tileDeg);
 
 	const ctx = {
+		db,
 		bboxRaw,
 		dataDir: "data",
 		publicOut: "frontend/public/venues.ndjson",
@@ -38,12 +47,16 @@ async function main() {
 		delayMs: 1000,
 		},
 	};
+	
+	try {
+		const stages = [
+			collectStage,
+		];
 
-	const stages = [
-		collectStage,
-	];
-
-	await runPipeline(ctx, stages);
+		await runPipeline(ctx, stages);
+	} finally {
+		await db.destroy();
+	}
 }
 
 main().catch((err) => {
