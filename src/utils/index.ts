@@ -69,15 +69,31 @@ export function bboxToOverpass(b: { minLat: number; minLon: number; maxLat: numb
 
 export function overpassQuery(b: BBox) {
   const bbox = bboxToOverpass(b);
+  const nameRegex = "Estate|Garden|Ranch|Vineyard";
 
   return `
-[out:json][timeout:60];
+[out:json][timeout:90];
 (
+  // 1. Standard event venues
   node["amenity"="events_venue"]${bbox};
   way["amenity"="events_venue"]${bbox};
   relation["amenity"="events_venue"]${bbox};
+
+  // 2. Resorts that specifically mention weddings
+  node["leisure"="resort"]["booking:wedding"="yes"]${bbox};
+  way["leisure"="resort"]["booking:wedding"="yes"]${bbox};
+  relation["leisure"="resort"]["booking:wedding"="yes"]${bbox};
+
+  // 3. Historic Manors and Castles
+  node["historic"~"manor|castle"]${bbox};
+  way["historic"~"manor|castle"]${bbox};
+  relation["historic"~"manor|castle"]${bbox};
+
+  // 4. Public buildings with specific wedding-style keywords in the name
+  node["building"="public"]["name"~"${nameRegex}",i]${bbox};
+  way["building"="public"]["name"~"${nameRegex}",i]${bbox};
+  relation["building"="public"]["name"~"${nameRegex}",i]${bbox};
 );
-out body center;
 `.trim();
 }
 
