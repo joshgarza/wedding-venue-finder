@@ -1,7 +1,10 @@
+import pLimit from 'p-limit';
 import * as cliProgress from 'cli-progress';
 import fs from 'node:fs';
 import axios from 'axios';
 import type { Stage } from "./stages";
+
+const limit = pLimit(5); // 5 concurrent crawls
 
 export const crawlStage: Stage = {
   name: "crawl",
