@@ -14,7 +14,6 @@ export const crawlStage: Stage = {
       .whereNotNull('website_url')
       .where('website_url', '!=', '')
       .whereNull('raw_markdown')
-      .limit(10);
 
     if (venues.length === 0) {
       console.log("No new venues to crawl.");
@@ -25,7 +24,7 @@ export const crawlStage: Stage = {
       format: 'Crawling Venues |' + '{bar}' + '| {percentage}% | {value}/{total}',
       barCompleteChar: '\u2588',
       barIncompleteChar: '\u2591',
-      hidCursor: true
+      hideCursor: true
     });
 
     progressBar.start(venues.length, 0);

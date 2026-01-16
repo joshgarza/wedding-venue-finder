@@ -7,11 +7,9 @@ export async function downloadImage(url: string, targetFolder: string, venueId: 
   try {
     // 1. Create unique filename from URL hash or name
     const ext = path.extname(new URL(url).pathname) || '.jpg';
-    const filename = `${Buffer.from(url).toString('base64').substring(0, 10)}${ext}`;
-    const targetPath = path.join(targetFolder, filename);
-
-    // 2. Ensure folder exists
-    if (!fs.existsSync(targetFolder)) fs.mkdirSync(targetFolder, { recursive: true });
+    await fs.promises.mkdir(targetFolder, { recursive: true });
+    const hash = crypto.createHash('md5').update(url).digest('hex');
+    const filename = `${hash.substring(0, 10)}${ext}`;
 
     // 3. Download with 5s timeout
     const response = await axios({
