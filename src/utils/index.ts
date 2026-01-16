@@ -71,11 +71,23 @@ export function overpassQuery(b: BBox) {
   const bbox = bboxToOverpass(b);
 
   return `
-[out:json][timeout:60];
+[out:json][timeout:90];
 (
-  node["amenity"="events_venue"]${bbox};
-  way["amenity"="events_venue"]${bbox};
-  relation["amenity"="events_venue"]${bbox};
+  // 1. Specific Amenities
+  node["amenity"~"events_venue|conference_centre|wedding_venue"]${bbox};
+  way["amenity"~"events_venue|conference_centre|wedding_venue"]${bbox};
+  
+  // 2. Resorts (Removed the "booking:wedding" filter to see if we get ANY resorts first)
+  node["leisure"="resort"]${bbox};
+  way["leisure"="resort"]${bbox};
+
+  // 3. Historic/Luxury types
+  node["historic"~"manor|castle|stately_house"]${bbox};
+  way["historic"~"manor|castle|stately_house"]${bbox};
+
+  // 4. Name-based search (Search for these names regardless of the 'building' tag)
+  node["name"~"Estate|Garden|Ranch|Vineyard|Winery",i]${bbox};
+  way["name"~"Estate|Garden|Ranch|Vineyard|Winery",i]${bbox};
 );
 out body center;
 `.trim();
