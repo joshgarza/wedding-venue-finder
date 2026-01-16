@@ -1,3 +1,5 @@
+import * as cliProgress from 'cli-progress';
+import fs from 'node:fs';
 import axios from 'axios';
 import type { Stage } from "./stages";
 
@@ -19,10 +21,17 @@ export const crawlStage: Stage = {
       return { success: true };
     }
 
+    const progressBar = new cliProgress.SingleBar({
+      format: 'Crawling Venues |' + '{bar}' + '| {percentage}% | {value}/{total}',
+      barCompleteChar: '\u2588',
+      barIncompleteChar: '\u2591',
+      hidCursor: true
+    });
+
+    progressBar.start(venues.length, 0);
+
     for (const venue of venues) {
       try {
-        console.log(`[CrawlStage] Fetching: ${venue.name} (${venue.website_url})`);
-
         const response = await axios.post('http://127.0.0.1:11235/crawl', {
           urls: [venue.website_url],
           priority: 1,
@@ -49,16 +58,13 @@ export const crawlStage: Stage = {
               raw_markdown: markdownToSave, 
               last_crawled_at: db.fn.now() // Use database-native timestamp
             });
-          console.log(`[CrawlStage] Successfully saved markdown for: ${venue.name}`);
-        } else {
-          console.error(`[CrawlStage] Crawl failed for ${venue.name}: ${result?.error || 'Unknown error'}`);
         }
-      } catch (err: any) {
-        console.error(`[CrawlStage] Connection error for ${venue.name}: ${err.message}`);
-        // We don't throw here so that one failed crawl doesn't crash the entire pipeline
+      } catch (err) {
+        fs.appendFileSync('crawl_errors.log', `${venue.name}: ${err.message}\n`);
       }
+      progressBar.increment(); 
     }
-
+    progressBar.stop();
     return { success: true };
   }
 };
