@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-import knex from "knex";
-import knexConfig from "../knexfile";
+import { db } from "../db/db-config";
 import { getArg, parseBBox, overpassQuery, tileBBox } from "../src/utils/index";
 import { runPipeline } from "../src/pipeline/runPipeline";
 import { collectStage } from "../src/pipeline/stage_collect";
@@ -21,7 +20,6 @@ const testSF: BBox = {
 };
 
 async function main() {
-	const db = knex(knexConfig.development);
   const defaultBbox = `${testSF.minLon},${testSF.minLat},${testSF.maxLon},${testSF.maxLat}`;
   
   const bboxRaw = getArg("bbox") ?? defaultBbox;

@@ -8,10 +8,10 @@
     },
     "scripts": {
       "migrate:make": "knex migrate:make -x ts",
-      "migrate:latest": "NODE_OPTIONS='--loader ts-node/esm' knex migrate:latest --knexfile knexfile.js",
-      "migrate:rollback": "NODE_OPTIONS='--loader ts-node/esm' knex migrate:rollback --knexfile knexfile.js",
+      "migrate:latest": "NODE_OPTIONS='--loader ts-node/esm' knex migrate:latest --knexfile knexfile.ts",
+      "migrate:rollback": "NODE_OPTIONS='--loader ts-node/esm' knex migrate:rollback --knexfile knexfile.ts",
       "dev": "ts-node src/index.ts",
       "pipeline": "ts-node bin/run.ts",
-      "db:shell": "sudo -u postgres psql -d wedding_venue_finder"
-    }
+      "db:shell": "docker compose exec db psql -U postgres -d wedding_venue_finder"
+  }
 }
