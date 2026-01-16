@@ -2,7 +2,8 @@
 import { db } from "../db/db-config";
 import { getArg, parseBBox, overpassQuery, tileBBox } from "../src/utils/index";
 import { runPipeline } from "../src/pipeline/runPipeline";
-import { collectStage } from "../src/pipeline/stage_collect";
+import { collectStage } from "../src/pipeline/stage_1_collect";
+import { processCrawlQueue } from "../src/pipeline/stage_2_crawl";
 import type { BBox } from "../src/pipeline/stages";
 
 const california: BBox = {
@@ -50,6 +51,7 @@ async function main() {
 		];
 
 		await runPipeline(ctx, stages);
+    await processCrawlQueue();
 	} finally {
 		await db.destroy();
 	}
