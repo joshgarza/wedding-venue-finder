@@ -22,9 +22,9 @@ const testSF: BBox = {
 };
 
 async function main() {
-  const defaultBbox = `${testSF.minLon},${testSF.minLat},${testSF.maxLon},${testSF.maxLat}`;
+  // const defaultBbox = `${testSF.minLon},${testSF.minLat},${testSF.maxLon},${testSF.maxLat}`;
     
-  //const defaultBbox = `${california.minLon},${california.minLat},${california.maxLon},${california.maxLat}`;
+  const defaultBbox = `${california.minLon},${california.minLat},${california.maxLon},${california.maxLat}`;
 
   const bboxRaw = getArg("bbox") ?? defaultBbox;
   const bbox = parseBBox(bboxRaw);
