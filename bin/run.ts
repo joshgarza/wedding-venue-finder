@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import { db } from "../db/db-config";
 import { getArg, parseBBox, overpassQuery, tileBBox } from "../src/utils/index";
+import type { BBox } from "../src/pipeline/stages";
 import { runPipeline } from "../src/pipeline/runPipeline";
 import { collectStage } from "../src/pipeline/stage_1_collect";
-import { processCrawlQueue } from "../src/pipeline/stage_2_crawl";
-import type { BBox } from "../src/pipeline/stages";
+import { crawlStage } from "../src/pipeline/stage_2_crawl";
+import { imageStage } from "../src/pipeline/stage_3_images";
 
 const california: BBox = {
 	minLon: -124.409591,
@@ -21,8 +22,10 @@ const testSF: BBox = {
 };
 
 async function main() {
-  const defaultBbox = `${testSF.minLon},${testSF.minLat},${testSF.maxLon},${testSF.maxLat}`;
-  
+  // const defaultBbox = `${testSF.minLon},${testSF.minLat},${testSF.maxLon},${testSF.maxLat}`;
+    
+  const defaultBbox = `${california.minLon},${california.minLat},${california.maxLon},${california.maxLat}`;
+
   const bboxRaw = getArg("bbox") ?? defaultBbox;
   const bbox = parseBBox(bboxRaw);
 
@@ -48,10 +51,11 @@ async function main() {
 	try {
 		const stages = [
 			collectStage,
+      crawlStage,
+      imageStage
 		];
 
 		await runPipeline(ctx, stages);
-    await processCrawlQueue();
 	} finally {
 		await db.destroy();
 	}

@@ -1,38 +1,64 @@
 import axios from 'axios';
-import { db } from '../../db/db-config'; // Assuming your Knex/Objection instance
+import type { Stage } from "./stages";
 
-export async function processCrawlQueue() {
-  // 1. Get venues that haven't been crawled yet
-  const venues = await db('venues')
+export const crawlStage: Stage = {
+  name: "crawl",
+  async run(ctx) {
+    const { db } = ctx;
+
+    // 1. Get venues that haven't been crawled yet
+    // Filtering for non-null/non-empty website_url ensures we don't waste resources
+    const venues = await db('venues')
       .whereNotNull('website_url')
+      .where('website_url', '!=', '')
       .whereNull('raw_markdown')
       .limit(10);
-  
-  for (const venue of venues) {
-    try {
-      console.log(`Crawling: ${venue.website_url}`);
-      
-      const response = await axios.post('http://localhost:11235/crawl', {
-        urls: [venue.website_url],
-        priority: 1,
-        // Using 'fit_markdown' provides the most LLM-ready version (no headers/footers)
-        markdown_type: 'fit_markdown' 
-      });
 
-      const { markdown, success, error } = response.data.results[0];
-
-      if (success) {
-        await db('venues')
-          .where({ venue_id: venue.venue_id })
-          .update({ 
-            raw_markdown: markdown,
-            last_crawled_at: new Date() 
-          });
-      } else {
-        console.error(`Crawl failed for ${venue.name}: ${error}`);
-      }
-    } catch (err) {
-      console.error(`Connection error for ${venue.name}: ${err.message}`);
+    if (venues.length === 0) {
+      console.log("No new venues to crawl.");
+      return { success: true };
     }
+
+    for (const venue of venues) {
+      try {
+        console.log(`[CrawlStage] Fetching: ${venue.name} (${venue.website_url})`);
+
+        const response = await axios.post('http://127.0.0.1:11235/crawl', {
+          urls: [venue.website_url],
+          priority: 1,
+          markdown_type: 'fit_markdown', // Optimized for local LLM context windows
+          content_filter: {
+            type: 'pruning',
+            threshold: 0.45,
+            min_word_threshold: 50
+          },
+          wait_for: 'body',
+          browser_config: {
+            headless: true
+          }
+        });
+
+        const result = response.data.results[0];
+
+        if (result && result.success) {
+          const markdownToSave = result.markdown?.fit_markdown || result.markdown?.raw_markdown || result.markdown;
+
+          await db('venues')
+            .where({ venue_id: venue.venue_id })
+            .update({
+              raw_markdown: markdownToSave, 
+              last_crawled_at: db.fn.now() // Use database-native timestamp
+            });
+          console.log(`[CrawlStage] Successfully saved markdown for: ${venue.name}`);
+        } else {
+          console.error(`[CrawlStage] Crawl failed for ${venue.name}: ${result?.error || 'Unknown error'}`);
+        }
+      } catch (err: any) {
+        console.error(`[CrawlStage] Connection error for ${venue.name}: ${err.message}`);
+        // We don't throw here so that one failed crawl doesn't crash the entire pipeline
+      }
+    }
+
+    return { success: true };
   }
-}
+};
