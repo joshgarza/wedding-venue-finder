@@ -4,7 +4,8 @@
     "cli-progress": "^3.12.0",
     "knex": "^3.1.0",
     "ollama": "^0.6.3",
-    "pg": "^8.17.1"
+    "pg": "^8.17.1",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
     "@types/cli-progress": "^3.11.6",
