@@ -1,115 +1,114 @@
 import pLimit from 'p-limit';
-import * as cliProgress from 'cli-progress';
-import fs from 'node:fs/promises';
 import axios from 'axios';
 import type { Stage } from "./stages";
+
+function isSameDomain(baseUrl: string, linkUrl: string): boolean {
+  try {
+    const base = new URL(baseUrl);
+    const link = new URL(linkUrl);
+    return base.hostname === link.hostname;
+  } catch {
+    return false;
+  }
+}
 
 export const crawlStage: Stage = {
   name: "crawl",
   async run(ctx) {
     const { db } = ctx;
-    const MAX_DEPTH = 3; // PRD requirement for discovery depth
     
     const venues = await db('venues')
       .whereNotNull('website_url')
-      .where('website_url', '!=', '')
-      .whereNull('raw_markdown');
-
+      .where('website_url', '!=', '');
+    
     if (venues.length === 0) return { success: true };
-
-    const progressBar = new cliProgress.SingleBar({
-      format: 'BFS Crawl Level {level} |' + '{bar}' + '| {percentage}% | {value}/{total}',
-      barCompleteChar: '\u2588',
-      barIncompleteChar: '\u2591',
-      hideCursor: true
-    });
-
+    
     const limit = pLimit(5);
-
+    
     for (const venue of venues) {
-      // BFS Queue: { url: string, depth: number }
       let queue = [{ url: venue.website_url, depth: 1 }];
       const visited = new Set<string>();
       let aggregatedMarkdown = "";
-
-      console.log(`\n🚀 Starting BFS crawl for: ${venue.name}`);
-      progressBar.start(1, 0); // Total will be updated dynamically
-
+      
       while (queue.length > 0) {
-        // Get all current level items to process them in parallel
-        const currentLevel = [...queue]; 
-        queue = []; // Clear queue for next level links
+        const currentBatch = [...queue];
+        queue = [];
+     
         
-        progressBar.setTotal(progressBar.getTotal() + currentLevel.length);
-
-        const levelResults = await Promise.all(
-          currentLevel.map(item => limit(async () => {
-            if (visited.has(item.url)) {
-              progressBar.increment();
-              return null;
-            }
+        const results = await Promise.all(
+          currentBatch.map(item => limit(async () => {
+            if (visited.has(item.url)) return null;
+            if (item.depth > 3) return null;
+            
             visited.add(item.url);
-
+            
             try {
               const response = await axios.post('http://127.0.0.1:11235/crawl', {
                 urls: [item.url],
-                priority: 1,
                 markdown_type: 'fit_markdown',
-                content_filter: { type: 'pruning', threshold: 0.45, min_word_threshold: 50 },
-                wait_for: 'body',
-                browser_config: { headless: true },
-                timeout: 30000
+                content_filter: { 
+                  type: 'pruning', 
+                  threshold: 0.48,
+                  min_word_threshold: 75
+                },
+                wait_for: 'domcontentloaded',
+                browser_config: { 
+                  headless: true,
+                  viewport: { width: 1024, height: 768 }
+                },
+                timeout: 20000
               });
-
+              
               const result = response.data.results[0];
+              
               if (result?.success) {
-                const content = result.markdown?.fit_markdown || result.markdown;
+                // Try multiple markdown extraction paths
+                const markdown = result.markdown?.fit_markdown || 
+                                result.markdown?.raw_markdown || 
+                                result.markdown ||
+                                result.fit_markdown ||
+                                result.raw_markdown;
                 
-                // Discover internal links for next BFS level (only if not at max depth)
-                const nextLinks = item.depth < MAX_DEPTH
-                  ? (result.links?.internal || [])
-                      .filter((link: string) => !visited.has(link))
-                      .map((link: string) => ({ url: link, depth: item.depth + 1 }))
-                  : [];
-                
-                return { content, nextLinks, url: item.url, depth: item.depth };              }
+                return {
+                  markdown: markdown ? `\n--- ${item.url} (depth ${item.depth}) ---\n${markdown}` : null,
+                  links: result.links?.internal || []
+                };
+              }
             } catch (err: any) {
-              await fs.appendFile('crawl_errors.log', `${venue.venue_id} [Depth ${item.depth}]: ${err.message}\n`);
-            } finally {
-              progressBar.increment();
+              return null;
             }
-            return null;
           }))
         );
-
-        // Process results: Aggregating markdown and populating next level of queue
-         for (const res of levelResults) {
-          if (res && res.content) {
-            // Ensure we are grabbing the string content, not the result object
-            const contentString = typeof res.content === 'string' 
-              ? res.content 
-              : (res.content.fit_markdown || res.content.raw_markdown || JSON.stringify(res.content));
-
-            aggregatedMarkdown += `\n\n--- Source: ${venue.website_url} ---\n\n${contentString}`;
-            
-            if (res.nextLinks && res.nextLinks[0].depth <= MAX_DEPTH) {
-              queue.push(...res.nextLinks);
+        
+        for (const result of results) {
+          if (result) {
+            // Aggregate markdown
+            if (result.markdown) {
+              aggregatedMarkdown += result.markdown;
+              console.log(`${venue.name} | Aggregate length: ${aggregatedMarkdown.length} chars`);
             }
+            
+            // Extract next level links
+            const childLinks = result.links
+              .map((link: any) => {
+                const url = typeof link === 'string' ? link : link.href;
+                return { url, depth: queue.depth + 1 };
+              })
+              .filter((i: any) => 
+                i.url && 
+                !visited.has(i.url) && 
+                isSameDomain(venue.website_url, i.url)
+              )
+              .slice(0, 10);
+            
+            queue.push(...childLinks);
           }
         }
       }
-      console.log(aggregatedMarkdown);
-      // Update DB with the combined logistics "Truth" from all 3 levels
-      await db('venues')
-        .where({ venue_id: venue.venue_id })
-        .update({
-          raw_markdown: aggregatedMarkdown,
-          last_crawled_at: db.fn.now()
-        });
-
-      progressBar.stop();
+      
+      console.log(`✅ ${venue.name}: ${visited.size} pages | Final: ${aggregatedMarkdown.length} chars\n`);
     }
-
+    
     return { success: true };
   }
 };
