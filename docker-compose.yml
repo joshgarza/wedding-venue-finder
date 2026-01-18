@@ -8,6 +8,8 @@ services:
       POSTGRES_DB: wedding_venue_finder
     ports:
       - "5432:5432"
+    networks:
+      - venue_network
 
   crawler:
     image: unclecode/crawl4ai:latest
@@ -15,3 +17,30 @@ services:
       - "11235:11235"
     # Ensures the crawler has enough shared memory for Playwright
     shm_size: '1gb'
+    networks:
+      - venue_network
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama_brain
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - venue_network
+    restart: always
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+networks:
+  venue_network:
+    driver: bridge
+
+volumes:
+  ollama_data:
