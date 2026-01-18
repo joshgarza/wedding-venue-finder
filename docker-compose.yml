@@ -38,6 +38,22 @@ services:
               count: 1
               capabilities: [gpu]
 
+  clip_api:
+      image: jinaai/clip-server:latest
+      container_name: clip_service
+      ports:
+        - "51000:51000"
+      networks:
+        - venue_network
+      restart: always
+      deploy:
+        resources:
+          reservations:
+            devices:
+              - driver: nvidia
+                count: 1
+                capabilities: [gpu]
+
 networks:
   venue_network:
     driver: bridge
