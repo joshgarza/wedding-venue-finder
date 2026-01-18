@@ -6,3 +6,8 @@ curl http://localhost:11434/api/generate -d '{
   "prompt": "Say exactly: Hello World. This is the Venue Intelligence Engine.",
   "stream": false
 }'
+
+docker exec -it ollama ollama pull moondream // pull moondream
+
+// delete data from venues
+TRUNCATE TABLE venues RESTART IDENTITY;

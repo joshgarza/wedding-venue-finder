@@ -1,72 +1,114 @@
 import pLimit from 'p-limit';
-import * as cliProgress from 'cli-progress';
-import fs from 'node:fs';
 import axios from 'axios';
 import type { Stage } from "./stages";
 
-const limit = pLimit(5); // 5 concurrent crawls
+function isSameDomain(baseUrl: string, linkUrl: string): boolean {
+  try {
+    const base = new URL(baseUrl);
+    const link = new URL(linkUrl);
+    return base.hostname === link.hostname;
+  } catch {
+    return false;
+  }
+}
 
 export const crawlStage: Stage = {
   name: "crawl",
   async run(ctx) {
     const { db } = ctx;
-
-    // 1. Get venues that haven't been crawled yet
-    // Filtering for non-null/non-empty website_url ensures we don't waste resources
+    
     const venues = await db('venues')
       .whereNotNull('website_url')
-      .where('website_url', '!=', '')
-      .whereNull('raw_markdown')
-
-    if (venues.length === 0) {
-      console.log("No new venues to crawl.");
-      return { success: true };
-    }
-
-    const progressBar = new cliProgress.SingleBar({
-      format: 'Crawling Venues |' + '{bar}' + '| {percentage}% | {value}/{total}',
-      barCompleteChar: '\u2588',
-      barIncompleteChar: '\u2591',
-      hideCursor: true
-    });
-
-    progressBar.start(venues.length, 0);
-
+      .where('website_url', '!=', '');
+    
+    if (venues.length === 0) return { success: true };
+    
+    const limit = pLimit(5);
+    
     for (const venue of venues) {
-      try {
-        const response = await axios.post('http://127.0.0.1:11235/crawl', {
-          urls: [venue.website_url],
-          priority: 1,
-          markdown_type: 'fit_markdown', // Optimized for local LLM context windows
-          content_filter: {
-            type: 'pruning',
-            threshold: 0.45,
-            min_word_threshold: 50
-          },
-          wait_for: 'body',
-          browser_config: {
-            headless: true
+      let queue = [{ url: venue.website_url, depth: 1 }];
+      const visited = new Set<string>();
+      let aggregatedMarkdown = "";
+      
+      while (queue.length > 0) {
+        const currentBatch = [...queue];
+        queue = [];
+     
+        
+        const results = await Promise.all(
+          currentBatch.map(item => limit(async () => {
+            if (visited.has(item.url)) return null;
+            if (item.depth > 3) return null;
+            
+            visited.add(item.url);
+            
+            try {
+              const response = await axios.post('http://127.0.0.1:11235/crawl', {
+                urls: [item.url],
+                markdown_type: 'fit_markdown',
+                content_filter: { 
+                  type: 'pruning', 
+                  threshold: 0.48,
+                  min_word_threshold: 75
+                },
+                wait_for: 'domcontentloaded',
+                browser_config: { 
+                  headless: true,
+                  viewport: { width: 1024, height: 768 }
+                },
+                timeout: 20000
+              });
+              
+              const result = response.data.results[0];
+              
+              if (result?.success) {
+                // Try multiple markdown extraction paths
+                const markdown = result.markdown?.fit_markdown || 
+                                result.markdown?.raw_markdown || 
+                                result.markdown ||
+                                result.fit_markdown ||
+                                result.raw_markdown;
+                
+                return {
+                  markdown: markdown ? `\n--- ${item.url} (depth ${item.depth}) ---\n${markdown}` : null,
+                  links: result.links?.internal || []
+                };
+              }
+            } catch (err: any) {
+              return null;
+            }
+          }))
+        );
+        
+        for (const result of results) {
+          if (result) {
+            // Aggregate markdown
+            if (result.markdown) {
+              aggregatedMarkdown += result.markdown;
+              console.log(`${venue.name} | Aggregate length: ${aggregatedMarkdown.length} chars`);
+            }
+            
+            // Extract next level links
+            const childLinks = result.links
+              .map((link: any) => {
+                const url = typeof link === 'string' ? link : link.href;
+                return { url, depth: queue.depth + 1 };
+              })
+              .filter((i: any) => 
+                i.url && 
+                !visited.has(i.url) && 
+                isSameDomain(venue.website_url, i.url)
+              )
+              .slice(0, 10);
+            
+            queue.push(...childLinks);
           }
-        });
-
-        const result = response.data.results[0];
-
-        if (result && result.success) {
-          const markdownToSave = result.markdown?.fit_markdown || result.markdown?.raw_markdown || result.markdown;
-
-          await db('venues')
-            .where({ venue_id: venue.venue_id })
-            .update({
-              raw_markdown: markdownToSave, 
-              last_crawled_at: db.fn.now() // Use database-native timestamp
-            });
         }
-      } catch (err) {
-        fs.appendFileSync('crawl_errors.log', `${venue.name}: ${err.message}\n`);
       }
-      progressBar.increment(); 
+      
+      console.log(`✅ ${venue.name}: ${visited.size} pages | Final: ${aggregatedMarkdown.length} chars\n`);
     }
-    progressBar.stop();
+    
     return { success: true };
   }
 };

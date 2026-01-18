@@ -4,6 +4,7 @@
     "cli-progress": "^3.12.0",
     "knex": "^3.1.0",
     "ollama": "^0.6.3",
+    "p-limit": "^7.2.0",
     "pg": "^8.17.1",
     "zod": "^4.3.5"
   },
@@ -20,6 +21,7 @@
     "db:shell": "docker compose exec db psql -U postgres -d wedding_venue_finder",
     "test:crawl": "NODE_OPTIONS='ts-node/esm' ts-node bin/test-crawl.ts",
     "test:image": "NODE_OPTIONS='ts-node/esm' ts-node bin/test-image.ts",
-    "test:enrichment": "NODE_OPTIONS='ts-node/esm' ts-node bin/test-enrichment.ts"
+    "test:enrichment": "NODE_OPTIONS='ts-node/esm' ts-node bin/test-enrichment.ts",
+    "test:imageFilter": "NODE_OPTIONS='ts-node/esm' ts-node bin/test-image-filter.ts"
   }
 }
