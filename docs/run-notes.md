@@ -8,3 +8,6 @@ curl http://localhost:11434/api/generate -d '{
 }'
 
 docker exec -it ollama ollama pull moondream // pull moondream
+
+// delete data from venues
+TRUNCATE TABLE venues RESTART IDENTITY;

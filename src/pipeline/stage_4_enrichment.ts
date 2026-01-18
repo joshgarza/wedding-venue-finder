@@ -7,7 +7,7 @@ export const enrichmentStage = {
   name: "enrichment",
   async run(ctx: PipelineCtx): Promise<StageResult> {
     const ollama = new Ollama({ host: 'http://localhost:11434' });
-    console.log('checking ollama', ollama);
+    
     const venues = await ctx.db('venues')
       .whereNotNull('raw_markdown')
       .where('lodging_capacity', 0); 

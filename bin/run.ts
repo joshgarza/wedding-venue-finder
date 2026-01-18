@@ -7,6 +7,7 @@ import { collectStage } from "../src/pipeline/stage_1_collect";
 import { crawlStage } from "../src/pipeline/stage_2_crawl";
 import { imageStage } from "../src/pipeline/stage_3_images";
 import { enrichmentStage } from "../src/pipeline/stage_4_enrichment";
+import { imageFilterStage } from "../src/pipeline/stage_5_image_filter";
 
 const california: BBox = {
 	minLon: -124.409591,
@@ -45,7 +46,7 @@ async function main() {
 			"https://overpass.osm.jp/api/interpreter",
 		],
 		queryForBBox: overpassQuery,
-		delayMs: 1000,
+		delayMs: 300,
 		},
 	};
 	
@@ -54,7 +55,8 @@ async function main() {
 			collectStage,
       crawlStage,
       imageStage,
-      enrichmentStage
+      enrichmentStage,
+      imageFilterStage
 		];
 
 		await runPipeline(ctx, stages);
