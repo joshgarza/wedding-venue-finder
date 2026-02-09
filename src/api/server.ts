@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { errorHandler } from './middleware/errorHandler';
+import { setupStaticFileRoutes } from './middleware/static-files';
 import routes from './routes';
 
 // Load environment variables
@@ -25,6 +26,9 @@ app.use(
 // Body parsing middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Static file routes (venue images)
+setupStaticFileRoutes(app);
 
 // Health check endpoint
 app.get('/api/v1/health', (req, res) => {
