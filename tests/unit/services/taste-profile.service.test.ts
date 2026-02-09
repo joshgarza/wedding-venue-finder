@@ -20,6 +20,9 @@ import { db } from '../../../db/db-config';
 
 const mockDb = vi.mocked(db, true);
 
+// Add fn.now() to mockDb for update operations
+(mockDb as any).fn = { now: vi.fn().mockReturnValue(new Date()) };
+
 describe('TasteProfileService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -84,7 +87,7 @@ describe('TasteProfileService', () => {
       const userId = 'user-123';
       const sessionId = 'session-456';
 
-      // Mock swipes data
+      // Mock swipes data - need at least 5 venues for MIN_RIGHT_SWIPES
       const mockSwipes = [
         {
           venue_id: 'venue-1',
@@ -97,6 +100,14 @@ describe('TasteProfileService', () => {
         {
           venue_id: 'venue-3',
           image_data: { local_paths: ['/path/to/image4.jpg', '/path/to/image5.jpg'] }
+        },
+        {
+          venue_id: 'venue-4',
+          image_data: { local_paths: ['/path/to/image6.jpg'] }
+        },
+        {
+          venue_id: 'venue-5',
+          image_data: { local_paths: ['/path/to/image7.jpg', '/path/to/image8.jpg'] }
         }
       ];
 
@@ -127,13 +138,16 @@ describe('TasteProfileService', () => {
         .mockReturnValueOnce({ where: whereMock2 })
         .mockReturnValueOnce({ insert: insertMock });
 
-      // Mock embeddings for images
+      // Mock embeddings for images - 8 images total from 5 venues
       const mockImageEmbeddings = [
         Array(512).fill(0.1),
         Array(512).fill(0.2),
         Array(512).fill(0.3),
         Array(512).fill(0.4),
-        Array(512).fill(0.5)
+        Array(512).fill(0.5),
+        Array(512).fill(0.6),
+        Array(512).fill(0.7),
+        Array(512).fill(0.8)
       ];
 
       vi.mocked(EmbeddingService.generateBatchImageEmbeddings).mockResolvedValueOnce(
@@ -166,7 +180,7 @@ describe('TasteProfileService', () => {
       const userId = 'user-123';
       const sessionId = 'session-456';
 
-      // Mock only 3 swipes
+      // Mock only 4 swipes - need at least 5 for MIN_RIGHT_SWIPES
       const mockSwipes = [
         {
           venue_id: 'venue-1',
@@ -179,6 +193,10 @@ describe('TasteProfileService', () => {
         {
           venue_id: 'venue-3',
           image_data: { local_paths: ['/path/to/image3.jpg'] }
+        },
+        {
+          venue_id: 'venue-4',
+          image_data: { local_paths: ['/path/to/image4.jpg'] }
         }
       ];
 
@@ -349,11 +367,12 @@ describe('TasteProfileService', () => {
       const userId = 'user-123';
       const venueIds = ['venue-1', 'venue-2', 'venue-3'];
 
-      // Mock user profile
+      // Mock user profile - create a varied vector
+      const userVector = Array(512).fill(0).map((_, i) => (i % 2 === 0 ? 0.5 : 0.6));
       const userProfile = {
         profile_id: 'profile-789',
         user_id: userId,
-        embedding_vector: '[' + Array(512).fill(0.5).join(',') + ']',
+        embedding_vector: '[' + userVector.join(',') + ']',
         descriptive_words: ['Elegant', 'Modern', 'Romantic', 'Classic', 'Garden'],
         confidence: 0.85
       };
@@ -361,19 +380,26 @@ describe('TasteProfileService', () => {
       const firstMock = vi.fn().mockResolvedValue(userProfile);
       const whereMock1 = vi.fn().mockReturnValue({ first: firstMock });
 
-      // Mock venue embeddings
+      // Mock venue embeddings - create varied vectors with different similarities
+      // venue-1: very similar (should rank first)
+      const venue1Vector = Array(512).fill(0).map((_, i) => (i % 2 === 0 ? 0.51 : 0.61));
+      // venue-2: least similar (should rank last)
+      const venue2Vector = Array(512).fill(0).map((_, i) => (i % 2 === 0 ? 0.1 : 0.2));
+      // venue-3: moderately similar (should rank second)
+      const venue3Vector = Array(512).fill(0).map((_, i) => (i % 2 === 0 ? 0.48 : 0.58));
+
       const venueEmbeddings = [
         {
           venue_id: 'venue-1',
-          embedding_vector: '[' + Array(512).fill(0.6).join(',') + ']'
+          embedding_vector: '[' + venue1Vector.join(',') + ']'
         },
         {
           venue_id: 'venue-2',
-          embedding_vector: '[' + Array(512).fill(0.3).join(',') + ']'
+          embedding_vector: '[' + venue2Vector.join(',') + ']'
         },
         {
           venue_id: 'venue-3',
-          embedding_vector: '[' + Array(512).fill(0.55).join(',') + ']'
+          embedding_vector: '[' + venue3Vector.join(',') + ']'
         }
       ];
 
