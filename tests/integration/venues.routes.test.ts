@@ -3,7 +3,7 @@
  * Tests complete request/response flow with authentication
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import request from 'supertest';
 import app from '../../src/api/server';
 import { getDb } from '../../db/db-config';
@@ -13,14 +13,23 @@ const db = getDb();
 
 describe('Venue Routes Integration Tests', () => {
   let authToken: string;
-  let testUserId: number;
-  let testVenueIds: number[] = [];
+  let testUserId: string;
+  let testVenueIds: string[] = [];
+
+  beforeAll(async () => {
+    // Set JWT_SECRET for tests
+    process.env.JWT_SECRET = 'test-secret-for-integration-tests';
+
+    // Ensure database is connected
+    await db.raw('SELECT 1');
+  });
 
   beforeEach(async () => {
-    // Create test user
+    // Create test user with unique email to avoid conflicts in parallel test runs
+    const uniqueEmail = `venue-test-${Date.now()}-${Math.random().toString(36).substring(7)}@example.com`;
     const [user] = await db('users')
       .insert({
-        email: 'venue-integration-test@example.com',
+        email: uniqueEmail,
         password_hash: 'test',
         wedding_date: new Date('2026-08-15')
       })
@@ -29,8 +38,8 @@ describe('Venue Routes Integration Tests', () => {
 
     // Generate JWT token for authentication
     authToken = jwt.sign(
-      { userId: testUserId, email: 'venue-integration-test@example.com' },
-      process.env.JWT_SECRET || 'test-secret',
+      { userId: testUserId, email: uniqueEmail, type: 'access' },
+      process.env.JWT_SECRET!,
       { expiresIn: '1h' }
     );
 
@@ -312,8 +321,10 @@ describe('Venue Routes Integration Tests', () => {
     });
 
     it('should return 404 for non-existent venue', async () => {
+      // Use a valid UUID format that doesn't exist in database
+      const nonExistentUuid = '00000000-0000-0000-0000-000000000000';
       const response = await request(app)
-        .get('/api/v1/venues/99999')
+        .get(`/api/v1/venues/${nonExistentUuid}`)
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(404);
