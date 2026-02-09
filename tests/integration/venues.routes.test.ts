@@ -11,7 +11,7 @@ import * as jwt from 'jsonwebtoken';
 
 const db = getDb();
 
-describe('Venue Routes Integration Tests', () => {
+describe.sequential('Venue Routes Integration Tests', () => {
   let authToken: string;
   let testUserId: string;
   let testVenueIds: string[] = [];
@@ -33,8 +33,19 @@ describe('Venue Routes Integration Tests', () => {
         password_hash: 'test',
         wedding_date: new Date('2026-08-15')
       })
-      .returning('user_id');
+      .returning('*');
     testUserId = user.user_id;
+
+    // Verify user was created successfully
+    if (!testUserId) {
+      throw new Error('Failed to create test user - user_id is undefined');
+    }
+
+    // Double-check user exists in database before proceeding
+    const userCheck = await db('users').where('user_id', testUserId).first();
+    if (!userCheck) {
+      throw new Error(`User ${testUserId} was created but immediately disappeared from database - possible interference from parallel tests`);
+    }
 
     // Generate JWT token for authentication
     authToken = jwt.sign(
@@ -107,7 +118,7 @@ describe('Venue Routes Integration Tests', () => {
     await db('users').where('user_id', testUserId).del();
   });
 
-  describe('GET /api/v1/venues', () => {
+  describe.sequential('GET /api/v1/venues', () => {
     it('should return 401 without authentication', async () => {
       const response = await request(app).get('/api/v1/venues');
 
@@ -301,7 +312,7 @@ describe('Venue Routes Integration Tests', () => {
     });
   });
 
-  describe('GET /api/v1/venues/:id', () => {
+  describe.sequential('GET /api/v1/venues/:id', () => {
     it('should return 401 without authentication', async () => {
       const response = await request(app).get(`/api/v1/venues/${testVenueIds[0]}`);
 
