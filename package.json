@@ -22,6 +22,7 @@
     "test:crawl": "NODE_OPTIONS='ts-node/esm' ts-node bin/test-crawl.ts",
     "test:image": "NODE_OPTIONS='ts-node/esm' ts-node bin/test-image.ts",
     "test:enrichment": "NODE_OPTIONS='ts-node/esm' ts-node bin/test-enrichment.ts",
-    "test:imageFilter": "NODE_OPTIONS='ts-node/esm' ts-node bin/test-image-filter.ts"
+    "test:imageFilter": "NODE_OPTIONS='ts-node/esm' ts-node bin/test-image-filter.ts",
+    "test:preVetting": "NODE_OPTIONS='ts-node/esm' ts-node bin/test-pre-vetting.ts"
   }
 }

@@ -17,9 +17,11 @@ export const crawlStage: Stage = {
   async run(ctx) {
     const { db } = ctx;
     
+    // Only crawl venues that passed pre-vetting
     const venues = await db('venues')
       .whereNotNull('website_url')
-      .where('website_url', '!=', '');
+      .where('website_url', '!=', '')
+      .where('pre_vetting_status', 'yes'); // NEW: Only crawl pre-vetted "yes" venues
     
     if (venues.length === 0) return { success: true };
     

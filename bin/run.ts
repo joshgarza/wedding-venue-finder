@@ -4,6 +4,7 @@ import { getArg, parseBBox, overpassQuery, tileBBox } from "../src/utils/index";
 import type { BBox } from "../src/pipeline/stages";
 import { runPipeline } from "../src/pipeline/runPipeline";
 import { collectStage } from "../src/pipeline/stage_1_collect";
+import { preVettingStage } from "../src/pipeline/stage_1_5_pre_vetting";
 import { crawlStage } from "../src/pipeline/stage_2_crawl";
 import { imageStage } from "../src/pipeline/stage_3_images";
 import { enrichmentStage } from "../src/pipeline/stage_4_enrichment";
@@ -53,7 +54,8 @@ async function main() {
 	try {
 		const stages = [
 			collectStage,
-      crawlStage,
+			preVettingStage,  // NEW: Pre-vetting stage - filters candidates before BFS crawl
+      crawlStage,       // Now only processes "yes" venues
       imageStage,
       enrichmentStage,
       imageFilterStage
