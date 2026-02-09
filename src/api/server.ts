@@ -18,7 +18,27 @@ app.use(helmet());
 // CORS configuration
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, Postman)
+      if (!origin) return callback(null, true);
+
+      // In development, allow any localhost origin
+      if (process.env.NODE_ENV === 'development' && origin.startsWith('http://localhost:')) {
+        return callback(null, true);
+      }
+
+      // In production, use the FRONTEND_URL from environment
+      if (origin === process.env.FRONTEND_URL) {
+        return callback(null, true);
+      }
+
+      // Fallback: allow default frontend URL
+      if (origin === 'http://localhost:5173') {
+        return callback(null, true);
+      }
+
+      callback(new Error('Not allowed by CORS'));
+    },
     credentials: true
   })
 );
