@@ -5,7 +5,7 @@ const config: { [key: string]: Knex.Config } = {
     client: 'pg',
     connection: {
       host: '127.0.0.1',
-      port: 5432,
+      port: 5433,
       user: 'postgres',
       password: 'postgres',
       database: 'wedding_venue_finder'

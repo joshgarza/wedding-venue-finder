@@ -5,6 +5,7 @@ export async function up(knex: Knex): Promise<void> {
   // Enable pgvector extension for vector similarity search
   // Required for taste_profiles.embedding_vector and venue_embeddings.embedding_vector columns
   await knex.raw('CREATE EXTENSION IF NOT EXISTS vector');
+  await knex.raw('CREATE EXTENSION IF NOT EXISTS postgis');
 }
 
 

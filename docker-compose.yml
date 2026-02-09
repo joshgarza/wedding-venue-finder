@@ -1,15 +1,22 @@
 version: '3.8'
 services:
   db:
-    image: postgis/postgis:15-3.3
+    image: ghcr.io/payloadcms/postgis-vector:latest
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: wedding_venue_finder
     ports:
-      - "5432:5432"
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - venue_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   crawler:
     image: unclecode/crawl4ai:latest
@@ -85,3 +92,4 @@ networks:
 
 volumes:
   ollama_data:
+  postgres_data:
