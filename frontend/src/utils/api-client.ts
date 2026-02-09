@@ -1,7 +1,7 @@
 import axios, { type AxiosInstance, type InternalAxiosRequestConfig, type AxiosError } from 'axios';
 import { getAccessToken, getRefreshToken, setTokens, removeTokens } from './auth.utils';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3003/api/v1';
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({

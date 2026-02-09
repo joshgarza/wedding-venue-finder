@@ -3,7 +3,7 @@ import axios from 'axios';
 import { getAccessToken } from '../utils/auth.utils';
 import type { SearchFilters, VenueSearchResponse, ApiVenue } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3003';
 
 export interface UseVenueSearchResult {
   venues: ApiVenue[];
