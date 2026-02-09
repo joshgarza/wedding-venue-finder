@@ -102,21 +102,38 @@ export async function login(
 export async function refreshAccessToken(
   refreshToken: string
 ): Promise<RefreshResponse> {
-  // Verify refresh token
-  const payload = verifyRefreshToken(refreshToken);
+  try {
+    // Verify refresh token
+    const payload = verifyRefreshToken(refreshToken);
 
-  // Find user
-  const user = await findUserById(payload.userId);
-  if (!user) {
-    const error = new Error('User not found');
-    (error as any).statusCode = 404;
+    // Find user
+    const user = await findUserById(payload.userId);
+    if (!user) {
+      const error = new Error('User not found');
+      (error as any).statusCode = 404;
+      throw error;
+    }
+
+    // Generate new access token
+    const accessToken = generateAccessToken(user.user_id);
+
+    return {
+      accessToken
+    };
+  } catch (error) {
+    // Convert JWT errors to 401 errors
+    if (error instanceof Error) {
+      if (
+        error.message === 'Invalid token type' ||
+        error.name === 'JsonWebTokenError' ||
+        error.name === 'TokenExpiredError'
+      ) {
+        const authError = new Error('Invalid or expired refresh token');
+        (authError as any).statusCode = 401;
+        throw authError;
+      }
+    }
+    // Re-throw other errors (like User not found)
     throw error;
   }
-
-  // Generate new access token
-  const accessToken = generateAccessToken(user.user_id);
-
-  return {
-    accessToken
-  };
 }

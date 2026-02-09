@@ -4,6 +4,9 @@
  */
 
 import { Knex } from 'knex';
+import { getDb } from '../../../db/db-config';
+
+const db = getDb();
 
 /**
  * Builds a PostGIS radius query using ST_DWithin for efficient geographic search
@@ -39,16 +42,16 @@ export function buildRadiusQuery(
  *
  * @param lat - Latitude of search center
  * @param lng - Longitude of search center
- * @returns Knex.Raw expression that computes distance in meters
+ * @returns Knex.Raw expression that computes distance in meters with alias
  */
 export function calculateDistance(lat: number, lng: number): Knex.Raw {
   // ST_Distance with geography type returns meters
   // Cast location_lat_long to geography for accurate calculation
-  return require('../../../db/db-config').db.raw(
+  return db.raw(
     `ST_Distance(
       location_lat_long::geography,
       ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography
-    )`,
+    ) as distance_meters`,
     [lng, lat]
   );
 }
