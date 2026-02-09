@@ -1,0 +1,93 @@
+/* Swipe Card Animations and Styles */
+
+.swipe-card {
+  will-change: transform;
+  touch-action: none;
+}
+
+.swipe-card-top {
+  cursor: grab;
+}
+
+.swipe-card-top:active {
+  cursor: grabbing;
+}
+
+/* Smooth transitions for overlays */
+.swipe-overlay {
+  transition: opacity 0.2s ease-out;
+}
+
+/* Card stack effect - each card slightly offset and scaled */
+.swipe-card:nth-child(2) {
+  transform: scale(0.95) translateY(10px);
+  opacity: 0.9;
+}
+
+.swipe-card:nth-child(3) {
+  transform: scale(0.9) translateY(20px);
+  opacity: 0.8;
+}
+
+/* Fade-in animation for new cards */
+@keyframes fadeInCard {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.swipe-card-enter {
+  animation: fadeInCard 0.3s ease-out;
+}
+
+/* Exit animations */
+@keyframes swipeOutLeft {
+  to {
+    transform: translateX(-150vw) rotate(-30deg);
+    opacity: 0;
+  }
+}
+
+@keyframes swipeOutRight {
+  to {
+    transform: translateX(150vw) rotate(30deg);
+    opacity: 0;
+  }
+}
+
+.swipe-card-exit-left {
+  animation: swipeOutLeft 0.3s ease-in forwards;
+}
+
+.swipe-card-exit-right {
+  animation: swipeOutRight 0.3s ease-in forwards;
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .swipe-card {
+    max-width: 100%;
+  }
+}
+
+/* Prevent text selection during drag */
+.swipe-card * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Ensure smooth rendering on mobile */
+.swipe-card,
+.swipe-overlay {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-perspective: 1000px;
+  perspective: 1000px;
+}

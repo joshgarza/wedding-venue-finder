@@ -108,4 +108,3 @@ export type VenueDetailResponse = {
   is_historic?: boolean | null;
   taste_score?: number | null;
 };
-
