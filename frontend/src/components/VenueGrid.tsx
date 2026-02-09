@@ -1,4 +1,3 @@
-import React from 'react';
 import type { ApiVenue } from '../types';
 
 interface VenueGridProps {
@@ -70,7 +69,7 @@ interface VenueCardProps {
 }
 
 function VenueCard({ venue, onClick, onSaveToggle, isSaved }: VenueCardProps) {
-  const tasteScore = venue.taste_score !== undefined ? Math.round(venue.taste_score * 100) : null;
+  const tasteScore = venue.taste_score !== undefined && venue.taste_score !== null ? Math.round(venue.taste_score * 100) : null;
 
   const getTasteScoreColor = (score: number) => {
     if (score >= 80) return '#10b981';
@@ -78,7 +77,8 @@ function VenueCard({ venue, onClick, onSaveToggle, isSaved }: VenueCardProps) {
     return '#6b7280';
   };
 
-  const getPricingTierLabel = (tier: string) => {
+  const getPricingTierLabel = (tier: string | null | undefined) => {
+    if (!tier) return '?';
     const labels: Record<string, string> = {
       low: '$',
       medium: '$$',
@@ -179,7 +179,7 @@ function VenueCard({ venue, onClick, onSaveToggle, isSaved }: VenueCardProps) {
         {/* Location */}
         <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 10 }}>
           {venue.lat.toFixed(4)}, {venue.lng.toFixed(4)}
-          {venue.distance_meters !== undefined && (
+          {venue.distance_meters !== undefined && venue.distance_meters !== null && (
             <span> · {(venue.distance_meters / 1609.34).toFixed(1)} mi</span>
           )}
         </div>

@@ -1,5 +1,4 @@
 // src/components/PhotoStrip.tsx
-import React from "react";
 
 type Props = {
   photos?: (string | null | undefined)[];
