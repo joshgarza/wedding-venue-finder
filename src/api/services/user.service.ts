@@ -1,4 +1,4 @@
-import { db } from '../../db/db-config';
+import { db } from '../../../db/db-config';
 import { hashPassword } from '../utils/password.utils';
 
 export interface User {
