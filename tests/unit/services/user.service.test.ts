@@ -1,13 +1,21 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Mock the database before importing the service
-const mockDb = vi.fn();
 vi.mock('../../../db/db-config', () => ({
-  db: mockDb
+  db: vi.fn()
+}));
+
+// Mock password utils to avoid bcrypt calls
+vi.mock('../../../src/api/utils/password.utils', () => ({
+  hashPassword: vi.fn().mockResolvedValue('hashed-password'),
+  verifyPassword: vi.fn()
 }));
 
 // Import after mocking
 import * as userService from '../../../src/api/services/user.service';
+import { db } from '../../../db/db-config';
+
+const mockDb = vi.mocked(db, true);
 
 describe('User Service', () => {
   beforeEach(() => {

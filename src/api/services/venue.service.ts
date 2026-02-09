@@ -31,7 +31,7 @@ export interface VenueSearchFilters {
 }
 
 export interface VenueSearchResult {
-  venue_id: number;
+  venue_id: string;
   name: string;
   website_url: string | null;
   lat: number;
@@ -56,7 +56,7 @@ export interface VenueSearchResponse {
 }
 
 export interface VenueDetail {
-  venue_id: number;
+  venue_id: string;
   name: string;
   website_url: string | null;
   lat: number;
@@ -79,7 +79,7 @@ export interface VenueDetail {
  * @returns Paginated venue search results with taste scores
  */
 export async function searchVenues(
-  userId: number,
+  userId: string,
   filters: VenueSearchFilters
 ): Promise<VenueSearchResponse> {
   const {
@@ -149,7 +149,7 @@ export async function searchVenues(
 
   // Add distance calculation if location provided
   if (lat !== undefined && lng !== undefined) {
-    selectFields.push(calculateDistance(lat, lng).as('distance_meters'));
+    selectFields.push(calculateDistance(lat, lng));
   }
 
   query = query.select(selectFields);
@@ -171,11 +171,15 @@ export async function searchVenues(
       let thumbnail: string | undefined;
       if (imageData?.image_data) {
         try {
-          const parsed = JSON.parse(imageData.image_data);
+          // image_data is returned as parsed object from JSONB column
+          const parsed = typeof imageData.image_data === 'string'
+            ? JSON.parse(imageData.image_data)
+            : imageData.image_data;
+
           if (parsed.local_paths && parsed.local_paths.length > 0) {
             // Convert local path to API path
             const localPath = parsed.local_paths[0];
-            const venueIdMatch = localPath.match(/\/venues\/(\d+)\//);
+            const venueIdMatch = localPath.match(/\/venues\/([^/]+)\//);
             const filename = localPath.split('/').pop();
             if (venueIdMatch && filename) {
               thumbnail = `/images/venues/${venueIdMatch[1]}/${filename}`;
@@ -240,7 +244,7 @@ export async function searchVenues(
  * @param venueId - Venue ID
  * @returns Venue details with image paths, or null if not found
  */
-export async function getVenueById(venueId: number): Promise<VenueDetail | null> {
+export async function getVenueById(venueId: string): Promise<VenueDetail | null> {
   const venue = await db('venues')
     .where('venue_id', venueId)
     .where('is_active', true)
@@ -269,19 +273,23 @@ export async function getVenueById(venueId: number): Promise<VenueDetail | null>
   let images: string[] = [];
   if (venue.image_data) {
     try {
-      const parsed = JSON.parse(venue.image_data);
+      // image_data is returned as parsed object from JSONB column
+      const parsed = typeof venue.image_data === 'string'
+        ? JSON.parse(venue.image_data)
+        : venue.image_data;
+
       if (parsed.local_paths && Array.isArray(parsed.local_paths)) {
         // Convert local paths to API paths
         images = parsed.local_paths
           .map((localPath: string) => {
-            const venueIdMatch = localPath.match(/\/venues\/(\d+)\//);
+            const venueIdMatch = localPath.match(/\/venues\/([^/]+)\//);
             const filename = localPath.split('/').pop();
             if (venueIdMatch && filename) {
               return `/images/venues/${venueIdMatch[1]}/${filename}`;
             }
             return null;
           })
-          .filter((path: string | null) => path !== null);
+          .filter((path: string | null): path is string => path !== null);
       }
     } catch (e) {
       // Ignore parse errors, return empty images array
@@ -304,7 +312,7 @@ export async function getVenueById(venueId: number): Promise<VenueDetail | null>
  * @param venueId - Venue ID
  * @returns Cosine similarity score between -1 and 1, or 0 if no data
  */
-export async function getTasteScore(userId: number, venueId: number): Promise<number> {
+export async function getTasteScore(userId: string, venueId: string): Promise<number> {
   // Get user's taste profile
   const tasteProfile = await db('taste_profiles')
     .where('user_id', userId)

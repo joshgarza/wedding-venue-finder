@@ -11,8 +11,8 @@ import * as embeddingService from '../../../src/api/services/embedding.service';
 const db = getDb();
 
 describe('Venue Service', () => {
-  let testUserId: number;
-  let testVenueIds: number[] = [];
+  let testUserId: string;
+  let testVenueIds: string[] = [];
 
   beforeEach(async () => {
     // Create test user
@@ -310,10 +310,10 @@ describe('Venue Service', () => {
     it('should return venue details with images', async () => {
       const venueId = testVenueIds[0];
 
-      // Add image data
+      // Add image data with correct venue_id in path
       await db('venues').where('venue_id', venueId).update({
         image_data: JSON.stringify({
-          local_paths: ['/data/venues/1/image1.jpg', '/data/venues/1/image2.jpg']
+          local_paths: [`/data/venues/${venueId}/image1.jpg`, `/data/venues/${venueId}/image2.jpg`]
         })
       });
 
@@ -327,7 +327,9 @@ describe('Venue Service', () => {
     });
 
     it('should return null for non-existent venue', async () => {
-      const venue = await venueService.getVenueById(99999);
+      // Use a valid UUID format for non-existent venue
+      const fakeUuid = '00000000-0000-0000-0000-000000000000';
+      const venue = await venueService.getVenueById(fakeUuid);
       expect(venue).toBeNull();
     });
 

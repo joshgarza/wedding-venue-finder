@@ -27,6 +27,7 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/db ./db
 COPY --from=builder /app/migrations ./migrations
+COPY --from=builder /app/knexfile.ts ./knexfile.ts
 
 # Expose API port
 EXPOSE 3000

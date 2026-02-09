@@ -131,23 +131,36 @@ export const VenueSearchQuerySchema = z.object({
     .default(0)
 }).refine(
   (data) => {
-    // If location filter is used, all three fields (lat, lng, radius_meters) must be provided
+    // If any location field is provided, validate based on use case
     const hasLat = data.lat !== undefined;
     const hasLng = data.lng !== undefined;
     const hasRadius = data.radius_meters !== undefined;
 
-    if (hasLat || hasLng || hasRadius) {
-      return hasLat && hasLng && hasRadius;
+    // If none provided, that's OK
+    if (!hasLat && !hasLng && !hasRadius) {
+      return true;
     }
+
+    // If radius is provided, all three must be provided (location filtering)
+    if (hasRadius) {
+      return hasLat && hasLng;
+    }
+
+    // If lat or lng is provided without radius, both lat and lng must be provided
+    // (for distance sorting or distance calculation)
+    if (hasLat || hasLng) {
+      return hasLat && hasLng;
+    }
+
     return true;
   },
   {
-    message: 'Location filter requires lat, lng, and radius_meters to all be provided',
+    message: 'Location parameters: lat and lng must be provided together. For radius filtering, all three (lat, lng, radius_meters) are required.',
     path: ['lat']
   }
 ).refine(
   (data) => {
-    // If sorting by distance, location must be provided
+    // If sorting by distance, lat and lng must be provided
     if (data.sort === 'distance') {
       return data.lat !== undefined && data.lng !== undefined;
     }
@@ -161,12 +174,12 @@ export const VenueSearchQuerySchema = z.object({
 
 /**
  * Venue ID parameter schema
+ * Accepts UUID format (8-4-4-4-12 hex characters)
  */
 export const VenueIdParamSchema = z.object({
   id: z
     .string()
-    .regex(/^\d+$/, 'Venue ID must be a valid number')
-    .transform((val) => parseInt(val, 10))
+    .uuid('Venue ID must be a valid UUID')
 });
 
 /**

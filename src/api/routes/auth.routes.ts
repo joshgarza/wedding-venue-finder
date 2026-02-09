@@ -7,10 +7,12 @@ const router = Router();
 /**
  * Rate limiter for auth endpoints
  * 5 attempts per 15 minutes per IP
+ * In test environment, use much higher limit (1000) to effectively disable rate limiting
+ * except for the specific rate limit test which can use ENABLE_RATE_LIMIT_TEST=true
  */
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 requests per window
+  windowMs: process.env.NODE_ENV === 'test' ? 5000 : 15 * 60 * 1000, // 5 sec in test, 15 min in prod
+  max: process.env.NODE_ENV === 'test' && process.env.ENABLE_RATE_LIMIT_TEST !== 'true' ? 1000 : 5, // Effectively disabled in test
   message: {
     success: false,
     error: {

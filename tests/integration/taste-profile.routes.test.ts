@@ -103,9 +103,9 @@ describe('Taste Profile Routes', () => {
 
   describe('POST /api/taste-profile/generate', () => {
     it('should generate taste profile from session', async () => {
-      const sessionId = 'session-456';
+      const sessionId = '550e8400-e29b-41d4-a716-446655440001'; // Valid UUID
       const mockProfile = {
-        profileId: 'profile-789',
+        profileId: '550e8400-e29b-41d4-a716-446655440002',
         userId: mockUserId,
         descriptiveWords: ['Elegant', 'Modern', 'Romantic', 'Classic', 'Garden'],
         confidence: 0.85
@@ -141,7 +141,7 @@ describe('Taste Profile Routes', () => {
     });
 
     it('should return 400 if insufficient right swipes', async () => {
-      const sessionId = 'session-456';
+      const sessionId = '550e8400-e29b-41d4-a716-446655440003'; // Valid UUID
 
       vi.mocked(TasteProfileService.generateProfile).mockRejectedValueOnce(
         new Error('Insufficient right swipes. Got 3, need at least 5')
@@ -160,7 +160,7 @@ describe('Taste Profile Routes', () => {
     it('should require authentication', async () => {
       const response = await request(app)
         .post('/api/taste-profile/generate')
-        .send({ sessionId: 'session-456' });
+        .send({ sessionId: '550e8400-e29b-41d4-a716-446655440004' });
 
       expect(response.status).toBe(401);
     });
@@ -210,9 +210,9 @@ describe('Taste Profile Routes', () => {
 
   describe('POST /api/taste-profile/update', () => {
     it('should update profile on right swipe', async () => {
-      const venueId = 'venue-456';
+      const venueId = '550e8400-e29b-41d4-a716-446655440005'; // Valid UUID
       const mockProfile = {
-        profileId: 'profile-789',
+        profileId: '550e8400-e29b-41d4-a716-446655440006',
         userId: mockUserId,
         descriptiveWords: ['Elegant', 'Modern', 'Romantic', 'Rustic', 'Garden'],
         confidence: 0.87
@@ -251,16 +251,16 @@ describe('Taste Profile Routes', () => {
       const response = await request(app)
         .post('/api/taste-profile/update')
         .set('Authorization', `Bearer ${mockToken}`)
-        .send({ venueId: 'venue-456', action: 'invalid' });
+        .send({ venueId: '550e8400-e29b-41d4-a716-446655440007', action: 'invalid' });
 
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
     });
 
     it('should handle left swipe without updating', async () => {
-      const venueId = 'venue-456';
+      const venueId = '550e8400-e29b-41d4-a716-446655440008'; // Valid UUID
       const mockProfile = {
-        profileId: 'profile-789',
+        profileId: '550e8400-e29b-41d4-a716-446655440009',
         userId: mockUserId,
         descriptiveWords: ['Elegant', 'Modern', 'Romantic', 'Classic', 'Garden'],
         confidence: 0.85
@@ -292,7 +292,7 @@ describe('Taste Profile Routes', () => {
       const response = await request(app)
         .post('/api/taste-profile/update')
         .set('Authorization', `Bearer ${mockToken}`)
-        .send({ venueId: 'venue-456', action: 'right' });
+        .send({ venueId: '550e8400-e29b-41d4-a716-446655440010', action: 'right' });
 
       expect(response.status).toBe(400);
       expect(response.body.error.message).toBe('Taste profile not found');
@@ -301,11 +301,15 @@ describe('Taste Profile Routes', () => {
 
   describe('POST /api/taste-profile/rank-venues', () => {
     it('should rank venues by taste similarity', async () => {
-      const venueIds = ['venue-1', 'venue-2', 'venue-3'];
+      const venueIds = [
+        '550e8400-e29b-41d4-a716-446655440011',
+        '550e8400-e29b-41d4-a716-446655440012',
+        '550e8400-e29b-41d4-a716-446655440013'
+      ]; // Valid UUIDs
       const mockRankedVenues = [
-        { venueId: 'venue-2', similarity: 0.95 },
-        { venueId: 'venue-1', similarity: 0.87 },
-        { venueId: 'venue-3', similarity: 0.72 }
+        { venueId: '550e8400-e29b-41d4-a716-446655440012', similarity: 0.95 },
+        { venueId: '550e8400-e29b-41d4-a716-446655440011', similarity: 0.87 },
+        { venueId: '550e8400-e29b-41d4-a716-446655440013', similarity: 0.72 }
       ];
 
       vi.mocked(TasteProfileService.rankVenuesByTaste).mockResolvedValueOnce(
@@ -368,7 +372,12 @@ describe('Taste Profile Routes', () => {
       const response = await request(app)
         .post('/api/taste-profile/rank-venues')
         .set('Authorization', `Bearer ${mockToken}`)
-        .send({ venueIds: ['venue-1', 'venue-2'] });
+        .send({
+          venueIds: [
+            '550e8400-e29b-41d4-a716-446655440014',
+            '550e8400-e29b-41d4-a716-446655440015'
+          ]
+        });
 
       expect(response.status).toBe(400);
       expect(response.body.error.message).toBe('Taste profile not found');
