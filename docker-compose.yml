@@ -54,6 +54,31 @@ services:
                 count: 1
                 capabilities: [gpu]
 
+  api:
+    build: .
+    container_name: wedding_api
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/wedding_venue_finder
+      - CLIP_SERVICE_URL=http://clip_api:51000
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-here-change-in-production}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-your-refresh-secret-key-here-change-in-production}
+      - NODE_ENV=development
+      - FRONTEND_URL=http://localhost:5173
+      - PORT=3000
+    volumes:
+      - ./data/venues:/app/data/venues:ro
+      - ./src:/app/src
+      - ./db:/app/db
+      - ./migrations:/app/migrations
+    depends_on:
+      - db
+      - clip_api
+    networks:
+      - venue_network
+    restart: unless-stopped
+
 networks:
   venue_network:
     driver: bridge
