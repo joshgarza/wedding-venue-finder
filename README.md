@@ -139,7 +139,7 @@ npm run migrate:latest
 docker compose ps
 
 # Test API health check
-curl http://127.0.0.1:3000/api/v1/health
+curl http://127.0.0.1:3003/api/v1/health
 # Should return: {"status":"ok","timestamp":"..."}
 
 # Run tests (optional)
@@ -596,7 +596,7 @@ wedding-venue-finder/
 4. **Verify Integration**
    ```bash
    # Test via API
-   curl http://localhost:3000/api/v1/my-endpoint
+   curl http://localhost:3003/api/v1/my-endpoint
 
    # Test via frontend (if applicable)
    ```
