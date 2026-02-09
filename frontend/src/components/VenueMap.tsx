@@ -1,5 +1,5 @@
 // src/components/VenueMap.tsx
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 

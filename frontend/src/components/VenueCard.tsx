@@ -1,5 +1,4 @@
 // src/components/VenueCard.tsx
-import React from "react";
 import type { Venue } from "../types";
 import { VenueMap } from "./VenueMap";
 import { PhotoStrip } from "./PhotoStrip";
