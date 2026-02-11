@@ -3,4 +3,9 @@ data/
 node_modules/
 package-lock.json
 .*
+!.claude/
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
+!.claude/hooks/*
 *.log
