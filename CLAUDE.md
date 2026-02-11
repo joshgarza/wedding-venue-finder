@@ -25,10 +25,75 @@ Wedding Venue Finder is a data pipeline that collects, processes, and filters we
 - After pipeline changes, test with small bbox before running full California dataset
 - Use `npm run db:shell` to verify database state after stage execution
 
+### Branch Protection
+- **NEVER commit directly to `main`** — a pre-commit hook will reject it
+- **NEVER create merge commits on `main`** — a pre-merge-commit hook will reject it
+- Only fast-forward merges (`git merge --ff-only`) are allowed on `main`
+- If the Claude Code hook blocks your Edit/Write, you are on the `main` worktree — switch to a feature branch worktree
+
 ### Context Management
 - Pipeline stages process data sequentially - note which stage you're working on
 - Check error logs (`.crawl_errors.log`, `filter_errors.log`, `image_errors.log`) for debugging
 - Re-read stage files before editing if session spans multiple stages
+
+## Git Worktree Workflow
+
+This repo uses a **bare repo + worktree** layout. Each branch has its own directory.
+
+### Directory Structure
+```
+/home/josh/coding/claude/
+  wedding-venue-finder.git/          # Bare repository (do not work here directly)
+    hooks/                           # Shared git hooks (pre-commit, pre-merge-commit)
+  wedding-venue-finder/              # Worktrees container
+    main/                            # main branch (protected, read-only for agents)
+    feat-frontend-auth/              # Feature branch worktrees
+    feat-search-ui/
+    feat-swipe-interface/
+    feat-taste-profile-ui/
+  wedding-venue-finder-shared/       # Shared gitignored resources
+    data/                            # Pipeline data (symlinked into each worktree)
+    .env                             # Template env file
+```
+
+### How to Work
+- **Start Claude from a worktree directory** (e.g. `wedding-venue-finder/feat-frontend-auth/`)
+- Each worktree is a full working copy with its own `node_modules`, `.env`, and `data` symlink
+- All worktrees share the same git history via the bare repo
+
+### Making Changes to Main
+1. Create or switch to a feature branch worktree
+2. Make changes and commit on the feature branch
+3. Rebase onto main: `git rebase main`
+4. Switch to main worktree and fast-forward: `git merge --ff-only <branch>`
+
+### Creating a New Worktree
+```bash
+cd /home/josh/coding/claude/wedding-venue-finder.git
+git worktree add ../wedding-venue-finder/<name> -b feat/<branch-name>
+# Then set up the worktree:
+cp /home/josh/coding/claude/wedding-venue-finder-shared/.env ../wedding-venue-finder/<name>/.env
+cp /home/josh/coding/claude/wedding-venue-finder/main/frontend/.env ../wedding-venue-finder/<name>/frontend/.env
+mkdir -p ../wedding-venue-finder/<name>/.claude
+cp /home/josh/coding/claude/wedding-venue-finder/main/.claude/settings.local.json ../wedding-venue-finder/<name>/.claude/settings.local.json
+ln -sfn /home/josh/coding/claude/wedding-venue-finder-shared/data ../wedding-venue-finder/<name>/data
+cd ../wedding-venue-finder/<name> && npm install
+```
+
+### Docker with Worktrees
+- Docker named volumes (`postgres_data`, `ollama_data`) are shared across worktrees
+- The `docker-compose.yml` mounts paths relative to the worktree you run it from
+- **Run docker from one worktree at a time** to avoid port conflicts
+
+### Worktree Gotchas
+- **Bare repo fetch refspec**: `git clone --bare` does not configure `remote.origin.fetch`. If `origin/main` is missing, run from the bare repo:
+  ```bash
+  git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+  git fetch origin
+  ```
+- **Feature branches need rebase**: After merging changes to `main`, feature branches must `git rebase main` to pick up shared files like `.claude/hooks/` and `.gitignore`
+- **`npm install` is per-worktree**: Each worktree has its own `node_modules`. Run `npm install` after creating a new worktree
+- **Frontend uses `--legacy-peer-deps`**: Run `npm install --legacy-peer-deps` in the `frontend/` directory to avoid peer dependency errors
 
 ## Tech Stack
 
