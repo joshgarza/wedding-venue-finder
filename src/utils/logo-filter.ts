@@ -13,6 +13,7 @@ export class LogoFilter {
         uri: imageUri,
         matches: [
           { text: "a business logo, watermark, or text graphic" },
+          { text: "a photograph of a place or building" },
         ]
       }]
     };

@@ -82,7 +82,8 @@ export const crawlStage: Stage = {
           }))
         );
         
-        for (const result of results) {
+        for (let i = 0; i < results.length; i++) {
+          const result = results[i];
           if (result) {
             // Aggregate markdown
             if (result.markdown) {
@@ -94,7 +95,7 @@ export const crawlStage: Stage = {
             const childLinks = result.links
               .map((link: any) => {
                 const url = typeof link === 'string' ? link : link.href;
-                return { url, depth: queue.depth + 1 };
+                return { url, depth: currentBatch[i].depth + 1 };
               })
               .filter((i: any) => 
                 i.url && 
@@ -108,6 +109,10 @@ export const crawlStage: Stage = {
         }
       }
       
+      await db('venues')
+        .where({ venue_id: venue.venue_id })
+        .update({ raw_markdown: aggregatedMarkdown });
+
       console.log(`✅ ${venue.name}: ${visited.size} pages | Final: ${aggregatedMarkdown.length} chars\n`);
     }
     
