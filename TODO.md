@@ -61,6 +61,46 @@ These must be fixed before any pipeline run. The pipeline will crash or silently
 
 ---
 
+### 0.6 `stage_4_enrichment.ts` — Wrong import path (COMPILE ERROR)
+**File:** `src/pipeline/stage_4_enrichment.ts`
+**Status:** :x: Not Started
+
+**Bug:**
+- [ ] **Line 4:** `import { PipelineCtx, StageResult } from './types'` — file `./types` does not exist. Should be `'./stages'` (where `PipelineCtx` and `StageResult` are defined). Stage 4 will not compile.
+
+---
+
+### 0.7 `stage_4_enrichment.ts` — `extractionResult` scoping bug (CRASH)
+**File:** `src/pipeline/stage_4_enrichment.ts`
+**Status:** :x: Not Started
+
+**Bug:**
+- [ ] **Lines ~110-119:** `extractionResult` is computed inside the retry `while` loop but the variable used after the loop is out of scope or uninitialized. The `if (extractionResult.success && extractionResult.data)` check after the loop will fail on the first venue.
+
+---
+
+### 0.8 `stages.ts` — `delayMx` typo breaks Overpass rate limiting
+**File:** `src/pipeline/stages.ts`
+**Status:** :x: Not Started
+
+**Bug:**
+- [ ] **Line 19:** Type defines `delayMx?: number` but `stage_1_collect.ts:53` reads `ctx.overpass.delayMs`. The typo means the configured delay is never read, so Overpass requests have no delay between them. Risks IP bans from public Overpass endpoints.
+
+**Fix:** Rename `delayMx` to `delayMs` in `stages.ts`.
+
+---
+
+### 0.9 `stage_5_image_filter.ts` — WHERE clause commented out (INEFFICIENT)
+**File:** `src/pipeline/stage_5_image_filter.ts`
+**Status:** :x: Not Started
+
+**Bug:**
+- [ ] **Lines 11-13:** The `.whereNotNull('image_data')` and `.whereRaw("(image_data->>'clip_logo_verified')::boolean IS DISTINCT FROM TRUE")` clauses are commented out. Stage 5 fetches and reprocesses ALL venues every run instead of only unverified ones.
+
+**Fix:** Uncomment the WHERE clause, or remove the dead code if reprocessing-all is intentional.
+
+---
+
 ## Phase 1: Data Collection
 
 ### 1.1 Collect LA Venues
@@ -120,25 +160,24 @@ These must be fixed before any pipeline run. The pipeline will crash or silently
 
 ### 2.1 Onboarding Flow (10 Swipes)
 **Priority:** HIGH
-**Status:** :x: Not Started
+**Status:** :construction: Partial (UI exists, needs E2E testing with live API)
 
-**Tasks:**
-- [ ] Create `Onboarding.tsx` page component
-- [ ] Fetch 10 random venues from `/api/v1/taste-profile/onboarding`
-- [ ] Display venue images in swipeable cards
-- [ ] Add swipe gesture detection (left/right)
-- [ ] Add progress indicator (1/10, 2/10, etc.)
-- [ ] Track swipes in session state
-- [ ] On 10th swipe, call `/api/v1/taste-profile/generate`
-- [ ] Show loading state during profile generation
-- [ ] Navigate to taste profile display on completion
+**Done:**
+- [x] Create `Onboarding.tsx` page component
+- [x] Fetch 10 random venues from `/api/v1/taste-profile/onboarding`
+- [x] Display venue images in swipeable cards
+- [x] Add swipe gesture detection (left/right)
+- [x] Add progress indicator (1/10, 2/10, etc.) — `components/swipe/ProgressDots.tsx`
+- [x] Track swipes in session state — `hooks/useOnboarding.ts`
+- [x] On 10th swipe, call `/api/v1/taste-profile/generate`
+- [x] Show loading state during profile generation
+- [x] Navigate to taste profile display on completion
+
+**Remaining:**
 - [ ] Add skip option
-
-**Components to Create:**
-- `pages/Onboarding.tsx`
-- `components/OnboardingCard.tsx`
-- `components/SwipeProgress.tsx`
-- `hooks/useOnboarding.ts`
+- [ ] E2E test with live backend API
+- [ ] Swipe recording is fire-and-forget — no user feedback if POST fails
+- [ ] No retry mechanism if profile generation fails (only shows error + reload)
 
 **Acceptance Criteria:**
 - New users see onboarding on first login
@@ -150,26 +189,26 @@ These must be fixed before any pipeline run. The pipeline will crash or silently
 
 ### 2.2 Swipe Interface (Main Browsing)
 **Priority:** HIGH
-**Status:** :x: Not Started
+**Status:** :construction: Partial (UI exists, needs E2E testing with live API)
 
-**Tasks:**
-- [ ] Create `Swipe.tsx` page component
-- [ ] Implement gesture-based swipe card stack (Tinder-style)
+**Done:**
+- [x] Create `Swipe.tsx` page component
+- [x] Implement gesture-based swipe card stack (Tinder-style) — `components/swipe/SwipeCard.tsx`, `SwipeCardStack.tsx`
   - Swipe right = save to shortlist
   - Swipe left = skip
-  - Undo last swipe (optional)
-- [ ] Fetch venues with taste-based ranking from `/api/v1/venues`
-- [ ] Display venue info on card (name, image, pricing, features)
-- [ ] Call `/api/v1/swipes` on each swipe
-- [ ] "Out of venues" state
-- [ ] Image carousel within card
+- [x] Fetch venues with taste-based ranking — `hooks/useSwipeDeck.ts` (batch prefetch)
+- [x] Display venue info on card (name, image, pricing, features)
+- [x] Call `/api/v1/swipes` on each swipe
+- [x] "Out of venues" state
 
-**Components to Create:**
-- `pages/Swipe.tsx`
-- `components/SwipeCard.tsx`
-- `components/SwipeCardStack.tsx`
-- `components/VenueCardInfo.tsx`
-- `hooks/useSwipe.ts`
+**Remaining:**
+- [ ] Undo last swipe
+- [ ] Image carousel within card (single image only currently)
+- [ ] E2E test with live backend API
+- [ ] Swipe recording is fire-and-forget — no user feedback if POST fails
+- [ ] If initial batch fetch returns 0 items, deck is permanently marked exhausted (no retry)
+
+**:warning: DECIDE BEFORE BUILDING FURTHER:** `feat/swipe-interface` branch has an alternative implementation (1 commit ahead, 32 behind main) with `ImageCarousel.tsx`, `VenueDetailModal.tsx`, and a different `useSwipe.ts` hook. Main already has a different working swipe implementation. Pick one before building on top of either — do not build on both.
 
 **Acceptance Criteria:**
 - Smooth swipe animations
@@ -183,81 +222,80 @@ These must be fixed before any pipeline run. The pipeline will crash or silently
 
 ### 3.1 Taste Profile Display
 **Priority:** HIGH
-**Status:** :x: Not Started
+**Status:** :construction: Partial (card component exists, embedded in Profile page)
 
-**Tasks:**
-- [ ] Create `TasteProfile.tsx` page component
-- [ ] Fetch profile from `/api/v1/taste-profile`
-- [ ] Display 5 descriptive words prominently
-- [ ] Show confidence score (0.0-1.0) with visual indicator
+**Done:**
+- [x] Create taste profile display — `components/TasteProfileCard.tsx` (embedded in `pages/Profile.tsx`, not standalone page)
+- [x] Fetch profile from `/api/v1/taste-profile` — `hooks/useTasteProfile.ts`
+- [x] Display 5 descriptive words prominently
+- [x] Show confidence score (0.0-1.0) with color-coded bar
+
+**Remaining:**
 - [ ] Add "Refine Profile" button (triggers 5 more swipes)
 - [ ] Add "How it works" explanation modal
-
-**Components to Create:**
-- `pages/TasteProfile.tsx`
-- `components/TasteProfileCard.tsx`
-- `components/DescriptiveWords.tsx`
-- `components/ConfidenceIndicator.tsx`
+- [ ] Standalone `TasteProfile.tsx` page (currently only shown via Profile page)
 
 ---
 
 ### 3.2 Shortlist Page
 **Priority:** MEDIUM
-**Status:** :x: Not Started
+**Status:** :construction: Partial (page and grid exist, needs polish)
 
-**Tasks:**
-- [ ] Create `Shortlist.tsx` page component
-- [ ] Fetch saved venues from `/api/v1/swipes/saved`
-- [ ] Display as grid or list view
-- [ ] Show venue cards with thumbnail, name, pricing, taste score
-- [ ] Add "Unsave" action
-- [ ] Click venue to see details
-- [ ] Empty state with CTA to start swiping
-- [ ] Sort options (by taste score, pricing, date saved)
+**Done:**
+- [x] Create `Shortlist.tsx` page component
+- [x] Fetch saved venues from `/api/v1/swipes/saved` — `hooks/useShortlist.ts`
+- [x] Display as grid view — `components/VenueGrid.tsx`
+- [x] Show venue cards with thumbnail, name, pricing, taste score
+- [x] Add "Unsave" action (optimistic removal)
+- [x] Sort options (by date saved, pricing, name) — client-side sorting
 
-**Components to Create:**
-- `pages/Shortlist.tsx`
-- `components/VenueGrid.tsx`
-- `components/VenueCard.tsx`
-- `components/ShortlistEmpty.tsx`
+**Remaining:**
+- [ ] Click venue to navigate to detail page
+- [ ] Empty state with CTA to start swiping (currently shows generic empty message)
+- [ ] Optimistic unsave has no rollback — if POST fails, venue disappears from UI permanently
+- [ ] List view toggle (grid only currently)
+- [ ] Sort by taste score (not wired up yet)
 
 ---
 
 ### 3.3 Search & Filter UI
 **Priority:** MEDIUM
-**Status:** Partial (components exist, needs integration)
+**Status:** :construction: Partial (full UI exists, has a critical bug — see 4.7)
 
-**Tasks:**
-- [ ] Review existing `Search.tsx` and `SearchFilters.tsx`
-- [ ] Connect to `/api/v1/venues` endpoint
-- [ ] Implement filters (pricing tier, has lodging, is estate, is historic, location, radius)
-- [ ] Add sorting dropdown (taste score, pricing, distance)
-- [ ] Pagination or infinite scroll
-- [ ] Update URL with filter params
+**Done:**
+- [x] `Search.tsx` page with sidebar filters + mobile drawer
+- [x] Connected to `/api/v1/venues` endpoint — `hooks/useVenueSearch.ts`
+- [x] Implement filters (pricing tier, has lodging, is estate, is historic, location, radius)
+- [x] Add sorting dropdown (taste score, pricing, distance) — `components/SortDropdown.tsx`
+- [x] Pagination with page controls
+- [x] Update URL with filter params (bidirectional URL sync)
+- [x] Location search via Nominatim geocoding + browser geolocation
 
-**Components to Verify/Update:**
-- `pages/Search.tsx`
-- `components/SearchFilters.tsx`
-- `components/VenueGrid.tsx`
-- `hooks/useVenueSearch.ts`
+**Remaining:**
+- [ ] **Bug:** `useVenueSearch.ts` uses raw `axios` instead of `apiClient` — token refresh won't work (see 4.7)
+- [ ] Nominatim free geocoding has rate limits, no backoff — will fail under moderate traffic
+- [ ] Radius slider updates filters on every change (no debounce) — could cause many API calls
+- [ ] E2E test with live backend API
 
 ---
 
 ### 3.4 Venue Detail Page
 **Priority:** MEDIUM
-**Status:** :x: Not Started
+**Status:** :construction: Partial (page exists with most features)
 
-**Tasks:**
-- [ ] Create `VenueDetail.tsx` page component
-- [ ] Fetch venue by ID from `/api/v1/venues/:id`
-- [ ] Display: image gallery, name, website, pricing, capacity, lodging, map, taste score
-- [ ] Add "Save to Shortlist" button
-- [ ] Related venues (similar taste)
+**Done:**
+- [x] Create `VenueDetail.tsx` page component
+- [x] Fetch venue by ID from `/api/v1/venues/:id` — `hooks/useVenueDetail.ts`
+- [x] Display: image gallery, name, website, pricing, capacity, lodging, map, taste score
+- [x] `components/ImageGallery.tsx` (carousel with thumbnails)
+- [x] `components/VenueMap.tsx` (Leaflet with CircleMarker)
+- [x] Add "Save to Shortlist" button (with 409 conflict handling)
+- [x] Collapsible raw markdown viewer
 
-**Components to Create:**
-- `pages/VenueDetail.tsx`
-- `components/ImageGallery.tsx`
-- `components/VenueInfo.tsx`
+**Remaining:**
+- [ ] Related venues (similar taste) section
+- [ ] Save/unsave failure is silent — user doesn't know if action succeeded
+- [ ] `isSaved` state is local only — doesn't sync if unsaved via Shortlist page
 
 ---
 
@@ -276,12 +314,12 @@ These must be fixed before any pipeline run. The pipeline will crash or silently
 
 ---
 
-### 4.2 Frontend API Client — Token Field Mismatch
-**File:** `frontend/src/utils/api-client.ts:85`
+### 4.2 Frontend API Client — Token Field Naming
+**File:** `frontend/src/utils/api-client.ts:84-88`
 **Status:** :x: Not Started
 
-**Bug:**
-- [ ] Sends `refresh_token` (snake_case) but backend auth schema may expect `refreshToken` (camelCase). Verify backend contract and align.
+**Issue:**
+- [ ] Sends `{ refreshToken }` (camelCase) to `/auth/refresh`. Verify this matches backend auth controller's expected field name. Also expects `response.data.data.accessToken` — verify this nested response shape.
 
 ---
 
@@ -324,9 +362,148 @@ These must be fixed before any pipeline run. The pipeline will crash or silently
 
 ---
 
+### 4.7 `useVenueSearch.ts` — Bypasses apiClient (BROKEN TOKEN REFRESH)
+**Priority:** HIGH
+**File:** `frontend/src/hooks/useVenueSearch.ts`
+**Status:** :x: Not Started
+
+**Bug:**
+- [ ] Uses raw `axios` import with manual `Authorization` header instead of the shared `apiClient` instance. This means the 401 token refresh interceptor in `api-client.ts` is completely bypassed. When the access token expires, search will silently fail with 401 errors.
+
+**Fix:** Replace `import axios from 'axios'` with `import apiClient from '../utils/api-client'` and remove the manual `Authorization` header logic.
+
+---
+
+### 4.8 Frontend Dead Code & Boilerplate Cleanup
+**Priority:** LOW
+**File:** Multiple
+**Status:** :x: Not Started
+
+**Tasks:**
+- [ ] Delete `frontend/src/App.tsx` — the original NDJSON prototype, no longer used (router mounts pages directly)
+- [ ] Delete `frontend/src/App.css` — only styled the old App.tsx, completely unused
+- [ ] Fix `frontend/src/index.css` — global styles set dark background (`#242424`) but all components render light/white. Remove or align the dark theme defaults
+- [ ] Fix `frontend/index.html` — title is generic "frontend", no favicon, no meta tags
+
+---
+
+### 4.9 Duplicate `API_BASE_URL` Definitions
+**Priority:** MEDIUM
+**Status:** :x: Not Started
+
+**Files:**
+- [ ] `frontend/src/utils/api-client.ts:4` — `import.meta.env.VITE_API_URL || 'http://localhost:3003/api/v1'`
+- [ ] `frontend/src/hooks/useVenueSearch.ts:6` — duplicated definition
+- [ ] `frontend/src/utils/image-url.ts` — duplicated definition
+
+**Fix:** Extract to a single `frontend/src/constants.ts` and import everywhere.
+
+---
+
+### 4.10 All Frontend Styling Inline — No Design Tokens
+**Priority:** MEDIUM
+**Status:** :x: Not Started
+
+**Issue:**
+- All styling is `style={{}}` objects with hardcoded colors, spacing, and sizes across 15+ files
+- Common colors repeated everywhere: `#2563eb` (blue), `#6b7280` (gray), `#111827` (dark), `#22c55e` (green), `#ef4444` (red)
+- Makes visual consistency, dark mode, and accessibility improvements very difficult
+
+**Fix:** Extract to CSS custom properties in `index.css` or a `tokens.css` file. Not blocking for MVP but reduces maintenance burden.
+
+---
+
+### 4.11 Stale Feature Branch Cleanup
+**Priority:** LOW
+**Status:** :x: Not Started
+
+**Branches with no unique commits (can be deleted):**
+- [ ] `feat/frontend-auth` — 0 ahead, 31 behind main
+- [ ] `feat/search-ui` — already merged via PR #8, 0 ahead, 15 behind main
+- [ ] `feat/taste-profile-ui` — 0 ahead, 32 behind main (created but never committed to)
+
+**Branch with unmerged work:**
+- [ ] `feat/swipe-interface` — 1 commit ahead, 32 behind main. Has alternative swipe implementation. Decide: rebase + PR, or discard in favor of current main implementation.
+
+---
+
+### 4.12 `swipe.service.ts` — Fire-and-forget taste profile update
+**Priority:** MEDIUM
+**File:** `src/api/services/swipe.service.ts`
+**Status:** :x: Not Started
+
+**Bug:**
+- [ ] **Lines 110-112:** `updateProfile(userId).catch(err => { console.error(...) })` — no `await`, errors only go to console. If profile update fails, the user's taste profile silently becomes stale with no visibility.
+
+**Fix:** Either `await` the call and handle the error, or add structured logging + a retry queue.
+
+---
+
+### 4.13 `venue.service.ts` — Missing null checks on image data
+**Priority:** MEDIUM
+**File:** `src/api/services/venue.service.ts`
+**Status:** :x: Not Started
+
+**Bug:**
+- [ ] **Lines ~164-196:** Accesses `imageData.local_paths` without checking if `imageData` is null/undefined. Will throw on venues with no images.
+
+**Fix:** Add optional chaining or null guard before accessing `local_paths`.
+
+---
+
+### 4.14 `docker-compose.yml` — Insecure JWT_SECRET default
+**Priority:** HIGH
+**File:** `docker-compose.yml`
+**Status:** :x: Not Started
+
+**Bug:**
+- [ ] `JWT_SECRET=${JWT_SECRET:-your-secret-key-here-change-in-production}` — default secret is publicly visible in the repo. If `.env` is missing or incomplete, the API runs with a known secret.
+
+**Fix:** Remove the default value. Fail fast if `JWT_SECRET` is not set.
+
+---
+
+### 4.15 No request logging middleware on API
+**Priority:** MEDIUM
+**Status:** :x: Not Started
+
+**Issue:**
+- [ ] No request logging — all API requests are invisible. No way to debug issues, monitor traffic, or detect abuse in production.
+
+**Fix:** Add a lightweight request logger middleware (e.g., `morgan` or a custom one with `pino`).
+
+---
+
+### 4.16 CORS hardcoded to localhost
+**Priority:** MEDIUM
+**File:** `src/api/server.ts`
+**Status:** :x: Not Started
+
+**Bug:**
+- [ ] **Line ~36:** CORS origin hardcoded to `http://localhost:5173`. Will block all cross-origin requests in production.
+
+**Fix:** Read from `FRONTEND_URL` environment variable with localhost as dev fallback.
+
+---
+
 ## Phase 5: Testing, Documentation & Deployment
 
-### 5.1 End-to-End User Flow Testing
+### 5.1 Frontend Test Infrastructure
+**Priority:** HIGH
+**Status:** :x: Not Started
+
+**Issue:** Zero test files exist for the frontend. No test framework is configured in `frontend/package.json`.
+
+**Tasks:**
+- [ ] Add Vitest + React Testing Library to frontend `devDependencies`
+- [ ] Add `vitest.config.ts` in `frontend/`
+- [ ] Write unit tests for `api-client.ts` token refresh logic (most complex utility)
+- [ ] Write unit tests for `useOnboarding` and `useSwipeDeck` hooks (complex state machines)
+- [ ] Write integration test for auth flow (login -> protected route -> token refresh)
+
+---
+
+### 5.2 End-to-End User Flow Testing
 **Priority:** HIGH
 **Status:** :x: Not Started
 **Depends On:** Phases 2-3
@@ -340,7 +517,7 @@ These must be fixed before any pipeline run. The pipeline will crash or silently
 
 ---
 
-### 5.2 Update Documentation
+### 5.3 Update Documentation
 **Priority:** LOW
 **Status:** :x: Not Started
 
@@ -350,7 +527,7 @@ These must be fixed before any pipeline run. The pipeline will crash or silently
 
 ---
 
-### 5.3 Production Deployment Prep
+### 5.4 Production Deployment Prep
 **Priority:** LOW
 **Status:** :x: Not Started
 
@@ -382,15 +559,15 @@ These must be fixed before any pipeline run. The pipeline will crash or silently
 
 ## Progress Tracker
 
-| Phase | Complete | In Progress | Not Started | Total |
-|-------|----------|-------------|-------------|-------|
-| **0: Pipeline Bugs** | 0 | 0 | 5 | 5 |
+| Phase | Complete | Partial | Not Started | Total |
+|-------|----------|---------|-------------|-------|
+| **0: Pipeline Bugs** | 0 | 0 | 9 | 9 |
 | **1: Data Collection** | 0 | 0 | 2 | 2 |
-| **2: Frontend Core** | 0 | 0 | 2 | 2 |
-| **3: Frontend Supporting** | 0 | 0 | 4 | 4 |
-| **4: Tech Debt** | 0 | 0 | 6 | 6 |
-| **5: Testing/Docs/Deploy** | 0 | 0 | 3 | 3 |
-| **TOTAL** | **0** | **0** | **22** | **22** |
+| **2: Frontend Core** | 0 | 2 | 0 | 2 |
+| **3: Frontend Supporting** | 0 | 4 | 0 | 4 |
+| **4: Tech Debt** | 0 | 0 | 16 | 16 |
+| **5: Testing/Docs/Deploy** | 0 | 0 | 4 | 4 |
+| **TOTAL** | **0** | **6** | **31** | **37** |
 
 ---
 
@@ -400,12 +577,16 @@ These must be fixed before any pipeline run. The pipeline will crash or silently
 1. **Pipeline bugs (Phase 0)** — Must fix before any data collection
 2. **LA Bounding Box** — Need verified coordinates
 3. **Disk Space** — Check available space for venue images (~5-10GB estimated)
+4. **`useVenueSearch` bypasses `apiClient`** (4.7) — Search page will silently break when tokens expire. Quick fix needed before any user testing.
 
 ### Questions to Resolve:
 - [ ] Confirm LA area boundaries for venue collection
 - [ ] Logo filter fix: add second CLIP text, or threshold-only? (see 0.4)
 - [ ] Hosting/deployment platform decision?
+- [ ] `feat/swipe-interface` branch: rebase + PR the alternative swipe implementation, or discard?
+- [ ] Clean up 3 stale feature branches? (see 4.11)
 
 ---
 
 **Next Step:** Fix Phase 0 bugs — start with `image-downloader.ts` (0.1) since it blocks Stage 3.
+**Quick frontend win:** Fix `useVenueSearch.ts` to use `apiClient` (4.7) — 1-line import change.
