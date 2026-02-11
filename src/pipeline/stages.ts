@@ -16,7 +16,7 @@ export type PipelineCtx = {
 	overpass: {
 		endpoints: string[];
 		queryForBBox: (bbox: BBox) => string;
-		delayMx?: number;
+		delayMs?: number;
 	};
 };
 
