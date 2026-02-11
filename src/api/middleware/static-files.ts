@@ -27,8 +27,8 @@ export async function serveVenueImage(req: Request, res: Response, next: NextFun
   try {
     const { venueId, filename } = req.params;
 
-    // Validate venue ID is numeric
-    if (!/^\d+$/.test(venueId)) {
+    // Validate venue ID is a UUID or numeric
+    if (!/^[0-9a-f\-]{36}$/.test(venueId) && !/^\d+$/.test(venueId)) {
       return res.status(400).json({ error: 'Invalid venue ID' });
     }
 
@@ -78,6 +78,8 @@ export async function serveVenueImage(req: Request, res: Response, next: NextFun
 
     // Set cache headers (cache for 1 day)
     res.setHeader('Cache-Control', 'public, max-age=86400');
+    // Allow cross-origin image loading (frontend is on a different port)
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
 
     // Stream the file
     const fileStream = fs.createReadStream(resolvedPath);

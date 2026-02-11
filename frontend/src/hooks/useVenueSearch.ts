@@ -85,7 +85,7 @@ export function useVenueSearch(filters: SearchFilters): UseVenueSearchResult {
       }
 
       const response = await axios.get<VenueSearchResponse>(
-        `${API_BASE_URL}/api/v1/venues?${params.toString()}`,
+        `${API_BASE_URL}/venues?${params.toString()}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

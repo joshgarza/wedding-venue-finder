@@ -21,6 +21,7 @@ type Props = {
   lat: number;
   lng: number;
   height?: number; // px
+  width?: number | string; // px or CSS string like '100%'
   zoom?: number;
 };
 
@@ -43,15 +44,15 @@ function EnsureInView({ lat, lng, zoom }: { lat: number; lng: number; zoom: numb
   return null;
 }
 
-export function VenueMap({ name, lat, lng, height = 700, zoom = 10 }: Props) {
+export function VenueMap({ name, lat, lng, height = 700, width = '100%', zoom = 10 }: Props) {
   return (
     <div
       style={{
         border: "1px solid #e5e7eb",
         borderRadius: 12,
         overflow: "hidden",
-        height, // fixed height
-        width: 700, // responsive width; change to px if you want fixed width too
+        height,
+        width,
       }}
     >
       <MapContainer

@@ -6,7 +6,9 @@ import Swipe from './pages/Swipe';
 import Search from './pages/Search';
 import Shortlist from './pages/Shortlist';
 import Profile from './pages/Profile';
+import VenueDetail from './pages/VenueDetail';
 import ProtectedRoute from './components/ProtectedRoute';
+import { AuthenticatedLayout } from './components/layouts/AuthenticatedLayout';
 
 const router = createBrowserRouter([
   {
@@ -30,36 +32,33 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: '/swipe',
     element: (
       <ProtectedRoute>
-        <Swipe />
+        <AuthenticatedLayout />
       </ProtectedRoute>
     ),
-  },
-  {
-    path: '/search',
-    element: (
-      <ProtectedRoute>
-        <Search />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: '/shortlist',
-    element: (
-      <ProtectedRoute>
-        <Shortlist />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: '/profile',
-    element: (
-      <ProtectedRoute>
-        <Profile />
-      </ProtectedRoute>
-    ),
+    children: [
+      {
+        path: '/swipe',
+        element: <Swipe />,
+      },
+      {
+        path: '/search',
+        element: <Search />,
+      },
+      {
+        path: '/shortlist',
+        element: <Shortlist />,
+      },
+      {
+        path: '/profile',
+        element: <Profile />,
+      },
+      {
+        path: '/venues/:id',
+        element: <VenueDetail />,
+      },
+    ],
   },
 ]);
 

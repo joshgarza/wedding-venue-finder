@@ -38,11 +38,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const response = await apiClient.get('/auth/me');
           setUser(response.data);
           setIsAuthenticated(true);
-        } catch (error) {
-          console.error('Failed to fetch user:', error);
-          removeTokens();
-          setUser(null);
-          setIsAuthenticated(false);
+        } catch (error: unknown) {
+          const status = (error as { response?: { status?: number } })?.response?.status;
+          if (status === 401) {
+            // Token is invalid — clear it
+            removeTokens();
+            setUser(null);
+            setIsAuthenticated(false);
+          } else {
+            // Other errors (404, network) — trust the existing token
+            setIsAuthenticated(true);
+          }
         }
       }
       setIsLoading(false);
@@ -54,10 +60,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     try {
       const response = await apiClient.post('/auth/login', { email, password });
-      const { access_token, refresh_token, user: userData } = response.data;
+      const { accessToken, refreshToken, user: userData } = response.data.data;
 
       // Save tokens
-      setTokens(access_token, refresh_token);
+      setTokens(accessToken, refreshToken);
 
       // Update state
       setUser(userData);
@@ -75,10 +81,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         password,
         wedding_date: weddingDate,
       });
-      const { access_token, refresh_token, user: userData } = response.data;
+      const { accessToken, refreshToken, user: userData } = response.data.data;
 
       // Save tokens
-      setTokens(access_token, refresh_token);
+      setTokens(accessToken, refreshToken);
 
       // Update state
       setUser(userData);

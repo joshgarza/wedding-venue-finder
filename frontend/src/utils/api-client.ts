@@ -85,18 +85,18 @@ apiClient.interceptors.response.use(
           refresh_token: refreshToken,
         });
 
-        const { access_token, refresh_token: newRefreshToken } = response.data;
+        const { accessToken, refreshToken: newRefreshToken } = response.data.data;
 
         // Save new tokens
-        setTokens(access_token, newRefreshToken);
+        setTokens(accessToken, newRefreshToken);
 
         // Update the failed request with new token
         if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${access_token}`;
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         }
 
         // Process queued requests
-        processQueue(null, access_token);
+        processQueue(null, accessToken);
 
         // Retry the original request
         return apiClient(originalRequest);
