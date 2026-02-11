@@ -1,13 +1,13 @@
 # Wedding Venue Finder - MVP TODO
 
 **Last Updated:** 2026-02-11
-**Status:** Pipeline mostly fixed (3 bugs remain), Frontend partial, Data missing
+**Status:** Pipeline ready (1 minor bug remains), Frontend partial, Data missing
 
 ---
 
 ## Phase 0: Fix Critical Pipeline Bugs
 
-~~Must fix before any pipeline run.~~ Most bugs are fixed. 3 remain — 0.6 is a compile blocker for Stage 4, 0.8 risks Overpass rate-limit bans, 0.9 is inefficiency only.
+~~Must fix before any pipeline run.~~ All critical bugs fixed. Only 0.9 remains (inefficiency, non-blocking).
 
 ### 0.1 `image-downloader.ts` — ~~Missing import + undefined variable~~
 **File:** `src/utils/image-downloader.ts`
@@ -49,15 +49,11 @@ Checks `res.success` (L13) and throws to abort pipeline. Catch block re-throws, 
 
 ---
 
-### 0.6 Wrong import path in pipeline stages (COMPILE ERROR)
+### 0.6 ~~Wrong import path in pipeline stages~~
 **Files:** `src/pipeline/stage_4_enrichment.ts`, `src/pipeline/stage_5_image_filter.ts`
-**Status:** :x: Not Started — **BLOCKS Stage 4 & 5**
+**Status:** :white_check_mark: Fixed (PR #13)
 
-**Bug:**
-- [ ] **`stage_4_enrichment.ts` Line 4:** `import { PipelineCtx, StageResult } from './types'` — file `./types` does not exist (verified: no `types.ts` in `src/pipeline/`). Should be `'./stages'`. Stage 4 will not compile.
-- [ ] **`stage_5_image_filter.ts` Line 4:** Same wrong `'./types'` import path. Stage 5 will not compile either.
-
-**Fix:** Change `'./types'` to `'./stages'` in both files.
+Changed `'./types'` to `'./stages'` in both files.
 
 ---
 
@@ -70,14 +66,11 @@ Checks `res.success` (L13) and throws to abort pipeline. Catch block re-throws, 
 
 ---
 
-### 0.8 `stages.ts` — `delayMx` typo breaks Overpass rate limiting
+### 0.8 ~~`stages.ts` — `delayMx` typo breaks Overpass rate limiting~~
 **File:** `src/pipeline/stages.ts`
-**Status:** :x: Not Started — **Risks Overpass IP ban during Stage 1**
+**Status:** :white_check_mark: Fixed (PR #13)
 
-**Bug:**
-- [ ] **Line 19:** Type defines `delayMx?: number` but `stage_1_collect.ts:53` reads `ctx.overpass.delayMs`. The typo means the configured delay is never read, so Overpass requests fire with no delay.
-
-**Fix:** Rename `delayMx` to `delayMs` in `stages.ts`.
+Renamed `delayMx` to `delayMs` on line 19.
 
 ---
 
@@ -97,7 +90,7 @@ Checks `res.success` (L13) and throws to abort pipeline. Catch block re-throws, 
 ### 1.1 Collect LA Venues
 **Priority:** CRITICAL
 **Status:** :x: Not Started
-**Depends On:** Phase 0 bugs 0.6 and 0.8 fixed
+**Depends On:** ~~Phase 0 bugs 0.6 and 0.8 fixed~~ Unblocked (fixed in PR #13)
 
 **Prerequisites verified:**
 - LA bounding box: `-118.67,33.70,-117.65,34.34` (covers downtown LA, Santa Monica, Long Beach, Pasadena, San Gabriel Valley)
@@ -106,7 +99,7 @@ Checks `res.success` (L13) and throws to abort pipeline. Catch block re-throws, 
 - Pipeline runs 6 stages: Collect → Pre-Vetting → Crawl → Images → Enrichment → Image Filter
 
 **Tasks:**
-- [ ] Fix Phase 0 bugs 0.6 and 0.8 first
+- [x] Fix Phase 0 bugs 0.6 and 0.8 (PR #13, merged)
 - [ ] Start Docker services: `docker compose up -d db crawler ollama clip_api`
 - [ ] Verify services: `docker compose ps`, `curl http://localhost:11434/api/tags`, `curl http://localhost:51000/`
 - [ ] Run migrations: `npm run migrate:latest`
@@ -548,22 +541,22 @@ Checks `res.success` (L13) and throws to abort pipeline. Catch block re-throws, 
 
 | Phase | Complete | Partial | Not Started | Total |
 |-------|----------|---------|-------------|-------|
-| **0: Pipeline Bugs** | 5 | 1 | 3 | 9 |
+| **0: Pipeline Bugs** | 7 | 1 | 1 | 9 |
 | **1: Data Collection** | 0 | 0 | 2 | 2 |
 | **2: Frontend Core** | 0 | 2 | 0 | 2 |
 | **3: Frontend Supporting** | 0 | 4 | 0 | 4 |
 | **4: Tech Debt** | 0 | 0 | 12 | 12 |
 | **5: Testing/Docs/Deploy** | 0 | 0 | 4 | 4 |
-| **TOTAL** | **5** | **7** | **21** | **33** |
+| **TOTAL** | **7** | **7** | **19** | **33** |
 
 ---
 
 ## Blockers & Questions
 
 ### Current Blockers:
-1. **Bug 0.6 (import path)** — Stage 4 & 5 won't compile. 1-line fix each.
-2. **Bug 0.8 (`delayMx` typo)** — No rate limiting on Overpass requests. Must fix before LA pipeline run or risk IP ban. 1-line fix.
-3. **LA Pipeline Run** — Can proceed once 0.6 and 0.8 are fixed. Bbox verified: `-118.67,33.70,-117.65,34.34`
+1. ~~**Bug 0.6 (import path)**~~ Fixed (PR #13)
+2. ~~**Bug 0.8 (`delayMx` typo)**~~ Fixed (PR #13)
+3. **LA Pipeline Run** — Unblocked. Bbox verified: `-118.67,33.70,-117.65,34.34`. Ready to run.
 4. **`useVenueSearch` bypasses `apiClient`** (4.7) — Search page will silently break when tokens expire. Quick fix needed before any user testing.
 
 ### Questions to Resolve:
@@ -573,5 +566,5 @@ Checks `res.success` (L13) and throws to abort pipeline. Catch block re-throws, 
 
 ---
 
-**Next Step:** Fix bugs 0.6 and 0.8 (three 1-line changes total), then run LA pipeline.
+**Next Step:** Run LA pipeline: `npm run pipeline -- --bbox="-118.67,33.70,-117.65,34.34" --tileDeg=0.01`
 **Quick frontend win:** Fix `useVenueSearch.ts` to use `apiClient` (4.7) — 1-line import change.
