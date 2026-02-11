@@ -1,7 +1,7 @@
 import { validateExtraction } from '../utils/validator';
 import { Ollama } from 'ollama';
 import * as cliProgress from 'cli-progress';
-import { PipelineCtx, StageResult } from './types'; // Adjust path as needed
+import { PipelineCtx, StageResult } from './stages';
 
 export const enrichmentStage = {
   name: "enrichment",

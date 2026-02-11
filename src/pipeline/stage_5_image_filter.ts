@@ -1,7 +1,7 @@
 import * as cliProgress from 'cli-progress';
 import { promises as fs } from 'fs';
 import { LogoFilter } from '../utils/logo-filter'; // Assuming standard project structure
-import { PipelineCtx, StageResult } from './types';
+import { PipelineCtx, StageResult } from './stages';
 
 
 export const imageFilterStage = {
