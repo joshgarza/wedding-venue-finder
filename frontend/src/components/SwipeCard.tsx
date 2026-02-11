@@ -250,7 +250,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
 
           {/* Badges */}
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
-            {venue.pricing_tier && venue.pricing_tier !== 'unknown' && (
+            {venue.pricing_tier && (
               <span
                 style={{
                   padding: '4px 10px',

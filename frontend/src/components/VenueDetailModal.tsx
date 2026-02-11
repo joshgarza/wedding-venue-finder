@@ -126,7 +126,7 @@ export const VenueDetailModal: React.FC<VenueDetailModalProps> = ({ venueId, isO
 
               {/* Metadata Badges */}
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
-                {venue.pricing_tier && venue.pricing_tier !== 'unknown' && (
+                {venue.pricing_tier && (
                   <span
                     style={{
                       padding: '6px 12px',
