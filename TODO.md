@@ -1,91 +1,81 @@
 # Wedding Venue Finder - MVP TODO
 
 **Last Updated:** 2026-02-11
-**Status:** Pipeline has critical bugs, Frontend partial, Data missing
+**Status:** Pipeline mostly fixed (3 bugs remain), Frontend partial, Data missing
 
 ---
 
 ## Phase 0: Fix Critical Pipeline Bugs
 
-These must be fixed before any pipeline run. The pipeline will crash or silently lose data in its current state.
+~~Must fix before any pipeline run.~~ Most bugs are fixed. 3 remain — 0.6 is a compile blocker for Stage 4, 0.8 risks Overpass rate-limit bans, 0.9 is inefficiency only.
 
-### 0.1 `image-downloader.ts` — Missing import + undefined variable (CRASH)
+### 0.1 `image-downloader.ts` — ~~Missing import + undefined variable~~
 **File:** `src/utils/image-downloader.ts`
-**Status:** :x: Not Started
+**Status:** :white_check_mark: Fixed
 
-**Bugs:**
-- [ ] **Line 11:** `crypto.createHash('md5')` called but `crypto` is never imported — runtime crash
-- [ ] **Line 27:** `targetPath` is used but never constructed. `targetFolder` and `filename` exist but are never joined into `targetPath` — runtime crash
-- [ ] **Lines 29-30:** `catch` block does silent `return null` with no logging — errors are invisible
+All three bugs resolved: `crypto` imported (L1), `targetPath` constructed via `path.join()` (L14), catch block logs with `console.error` (L32).
 
 ---
 
-### 0.2 `stage_3_images.ts` — Missing `fs` import (CRASH)
+### 0.2 `stage_3_images.ts` — ~~Missing `fs` import~~
 **File:** `src/pipeline/stage_3_images.ts`
-**Status:** :x: Not Started
+**Status:** :white_check_mark: Fixed
 
-**Bug:**
-- [ ] **Line 46:** `fs.appendFileSync('image_errors.log', ...)` called but `fs` is never imported — runtime crash on any per-venue error
+`fs` is imported on line 1.
 
 ---
 
-### 0.3 `stage_2_crawl.ts` — Never saves markdown + broken depth tracking (SILENT DATA LOSS)
+### 0.3 `stage_2_crawl.ts` — ~~Never saves markdown + broken depth tracking~~
 **File:** `src/pipeline/stage_2_crawl.ts`
-**Status:** :x: Not Started
+**Status:** :white_check_mark: Fixed
 
-**Bugs:**
-- [ ] **No `.update()` call:** `aggregatedMarkdown` is built up but never written to the database. The entire crawl stage produces no output. All downstream stages (images, enrichment, filtering) will find zero records to process.
-- [ ] **Line 97:** `queue.depth` is used but `queue` is an array — `.depth` is `undefined`, so child link depth is always `NaN`. The `depth > 3` guard on line 43 never triggers (`NaN > 3` is `false`), so crawling has no depth limit.
+`.update()` call exists (L113-116) and writes `aggregatedMarkdown` to `raw_markdown`. Queue uses objects with `.depth` property (L32), depth guard works correctly on `item.depth` (L44).
 
 ---
 
-### 0.4 `logo-filter.ts` — Payload/query mismatch (BROKEN FILTERING)
+### 0.4 `logo-filter.ts` — ~~Payload/query mismatch~~
 **File:** `src/utils/logo-filter.ts`
-**Status:** :x: Not Started
+**Status:** :white_check_mark: Fixed (minor fragility remains)
 
-**Bug:**
-- [ ] **Line 26:** Searches for a match containing `"photograph"` but the payload (line 15) only sends one text: `"a business logo, watermark, or text graphic"`. `.find()` returns `undefined`, so `photoScore` is `undefined` and `logoScore > photoScore` is always `false`. Stage 5 will never filter any logos.
-
-**Fix options:**
-- A) Add a second match text `"a photograph of a place or building"` to the payload
-- B) Remove the comparison and just threshold on `logoScore` alone
+Payload now includes both texts: `"a business logo, watermark, or text graphic"` and `"a photograph of a place or building"`. The `.find()` calls on L26-27 work correctly but lack optional chaining — would crash if CLIP returns an unexpected response shape. Low risk on happy path.
 
 ---
 
-### 0.5 `runPipeline.ts` — No abort on stage failure
+### 0.5 `runPipeline.ts` — ~~No abort on stage failure~~
 **File:** `src/pipeline/runPipeline.ts`
-**Status:** :x: Not Started
+**Status:** :white_check_mark: Fixed
 
-**Bug:**
-- [ ] **Lines 5-11:** Loop continues executing stages after a failure. If Stage 2 crashes, Stages 3-5 still run on stale/empty data. Should check `res.success` and abort (or at least warn).
+Checks `res.success` (L13) and throws to abort pipeline. Catch block re-throws, preventing downstream stages from running on failed data.
 
 ---
 
 ### 0.6 Wrong import path in pipeline stages (COMPILE ERROR)
 **Files:** `src/pipeline/stage_4_enrichment.ts`, `src/pipeline/stage_5_image_filter.ts`
-**Status:** :x: Not Started
+**Status:** :x: Not Started — **BLOCKS Stage 4 & 5**
 
 **Bug:**
-- [ ] **`stage_4_enrichment.ts` Line 4:** `import { PipelineCtx, StageResult } from './types'` — file `./types` does not exist. Should be `'./stages'` (where `PipelineCtx` and `StageResult` are defined). Stage 4 will not compile.
+- [ ] **`stage_4_enrichment.ts` Line 4:** `import { PipelineCtx, StageResult } from './types'` — file `./types` does not exist (verified: no `types.ts` in `src/pipeline/`). Should be `'./stages'`. Stage 4 will not compile.
 - [ ] **`stage_5_image_filter.ts` Line 4:** Same wrong `'./types'` import path. Stage 5 will not compile either.
+
+**Fix:** Change `'./types'` to `'./stages'` in both files.
 
 ---
 
-### 0.7 `stage_4_enrichment.ts` — `extractionResult` silent failure on Ollama errors
+### 0.7 `stage_4_enrichment.ts` — `extractionResult` silent failure on Ollama errors (LOW RISK)
 **File:** `src/pipeline/stage_4_enrichment.ts`
-**Status:** :x: Not Started
+**Status:** :warning: Low Risk — masked by initialization
 
-**Issue:**
-- [ ] **Lines ~68-119:** `extractionResult` is initialized to `{ success: false }` before the retry `while` loop. If all Ollama retries throw, it stays `{ success: false }` and the DB update is silently skipped — no crash, but no logging of which venues failed enrichment. Consider adding a warning log when all retries are exhausted.
+**Original report:** `extractionResult` out of scope after loop.
+**Actual state:** Variable is initialized on L68 as `{ success: false }`, so the post-loop check on L111 (`if (extractionResult.success && extractionResult.data)`) safely evaluates to `false` on failure. Control flow is messy (nested try-catch) but functionally correct. Consider adding a warning log when all retries are exhausted.
 
 ---
 
 ### 0.8 `stages.ts` — `delayMx` typo breaks Overpass rate limiting
 **File:** `src/pipeline/stages.ts`
-**Status:** :x: Not Started
+**Status:** :x: Not Started — **Risks Overpass IP ban during Stage 1**
 
 **Bug:**
-- [ ] **Line 19:** Type defines `delayMx?: number` but `stage_1_collect.ts:53` reads `ctx.overpass.delayMs`. The typo means the configured delay is never read, so Overpass requests have no delay between them. Risks IP bans from public Overpass endpoints.
+- [ ] **Line 19:** Type defines `delayMx?: number` but `stage_1_collect.ts:53` reads `ctx.overpass.delayMs`. The typo means the configured delay is never read, so Overpass requests fire with no delay.
 
 **Fix:** Rename `delayMx` to `delayMs` in `stages.ts`.
 
@@ -93,12 +83,12 @@ These must be fixed before any pipeline run. The pipeline will crash or silently
 
 ### 0.9 `stage_5_image_filter.ts` — WHERE clause commented out (INEFFICIENT)
 **File:** `src/pipeline/stage_5_image_filter.ts`
-**Status:** :x: Not Started
+**Status:** :x: Not Started — **Non-blocking, but wasteful on re-runs**
 
 **Bug:**
-- [ ] **Lines 11-13:** The `.whereNotNull('image_data')` and `.whereRaw("(image_data->>'clip_logo_verified')::boolean IS DISTINCT FROM TRUE")` clauses are commented out. Stage 5 fetches and reprocesses ALL venues every run instead of only unverified ones.
+- [ ] **Lines 12-13:** `.whereNotNull('image_data')` and `.whereRaw(...)` clauses are commented out. Stage 5 fetches and reprocesses ALL venues every run.
 
-**Fix:** Uncomment the WHERE clause, or remove the dead code if reprocessing-all is intentional.
+**Fix:** Uncomment the WHERE clause.
 
 ---
 
@@ -107,16 +97,24 @@ These must be fixed before any pipeline run. The pipeline will crash or silently
 ### 1.1 Collect LA Venues
 **Priority:** CRITICAL
 **Status:** :x: Not Started
-**Depends On:** Phase 0 (pipeline bugs fixed)
+**Depends On:** Phase 0 bugs 0.6 and 0.8 fixed
+
+**Prerequisites verified:**
+- LA bounding box: `-118.67,33.70,-117.65,34.34` (covers downtown LA, Santa Monica, Long Beach, Pasadena, San Gabriel Valley)
+- BBox format: `"minLon,minLat,maxLon,maxLat"`
+- Docker services needed: `db`, `crawler`, `ollama`, `clip_api`
+- Pipeline runs 6 stages: Collect → Pre-Vetting → Crawl → Images → Enrichment → Image Filter
 
 **Tasks:**
-- [ ] Verify LA bounding box coordinates
-  - West: ~-118.67, South: ~33.70, East: ~-117.65, North: ~34.34 (verify these)
-- [ ] Run full pipeline for LA area
+- [ ] Fix Phase 0 bugs 0.6 and 0.8 first
+- [ ] Start Docker services: `docker compose up -d db crawler ollama clip_api`
+- [ ] Verify services: `docker compose ps`, `curl http://localhost:11434/api/tags`, `curl http://localhost:51000/`
+- [ ] Run migrations: `npm run migrate:latest`
+- [ ] Run pipeline:
   ```bash
-  npm run pipeline -- --bbox="<VERIFIED_LA_COORDS>" --tileDeg=0.02
+  npm run pipeline -- --bbox="-118.67,33.70,-117.65,34.34" --tileDeg=0.01
   ```
-- [ ] Monitor all 5 stages for errors
+- [ ] Monitor all 6 stages for errors
 - [ ] Verify results in database
   ```sql
   SELECT COUNT(*) FROM venues WHERE is_wedding_venue = true;
@@ -394,8 +392,10 @@ These must be fixed before any pipeline run. The pipeline will crash or silently
 
 **Files:**
 - [ ] `frontend/src/utils/api-client.ts:4` — `import.meta.env.VITE_API_URL || 'http://localhost:3003/api/v1'`
-- [ ] `frontend/src/hooks/useVenueSearch.ts:6` — duplicated definition
-- [ ] `frontend/src/utils/image-url.ts` — duplicated definition
+- [ ] `frontend/src/hooks/useVenueSearch.ts:6` — `http://localhost:3003` (no `/api/v1` prefix — different from the others)
+- [ ] `frontend/src/utils/image-url.ts` — `http://localhost:3003/api/v1`
+
+**Note:** `useVenueSearch.ts` uses a different base URL (no `/api/v1` suffix). Consolidation must account for this or search requests will break.
 
 **Fix:** Extract to a single `frontend/src/constants.ts` and import everywhere.
 
@@ -440,15 +440,8 @@ These must be fixed before any pipeline run. The pipeline will crash or silently
 
 ---
 
-### 4.13 `venue.service.ts` — Missing null checks on image data
-**Priority:** MEDIUM
-**File:** `src/api/services/venue.service.ts`
-**Status:** :x: Not Started
-
-**Bug:**
-- [ ] **Lines ~164-196:** Accesses `imageData.local_paths` without checking if `imageData` is null/undefined. Will throw on venues with no images.
-
-**Fix:** Add optional chaining or null guard before accessing `local_paths`.
+### ~~4.13 `venue.service.ts` — Missing null checks on image data~~
+**Status:** Removed — code already uses optional chaining and `if` guards. No bug exists.
 
 ---
 
@@ -475,15 +468,8 @@ These must be fixed before any pipeline run. The pipeline will crash or silently
 
 ---
 
-### 4.16 CORS hardcoded to localhost
-**Priority:** MEDIUM
-**File:** `src/api/server.ts`
-**Status:** :x: Not Started
-
-**Bug:**
-- [ ] **Line ~36:** CORS origin hardcoded to `http://localhost:5173`. Will block all cross-origin requests in production.
-
-**Fix:** Read from `FRONTEND_URL` environment variable with localhost as dev fallback.
+### ~~4.16 CORS hardcoded to localhost~~
+**Status:** Removed — `server.ts` already reads `process.env.FRONTEND_URL` with localhost as dev fallback. No bug exists.
 
 ---
 
@@ -562,32 +548,30 @@ These must be fixed before any pipeline run. The pipeline will crash or silently
 
 | Phase | Complete | Partial | Not Started | Total |
 |-------|----------|---------|-------------|-------|
-| **0: Pipeline Bugs** | 0 | 0 | 9 | 9 |
+| **0: Pipeline Bugs** | 5 | 1 | 3 | 9 |
 | **1: Data Collection** | 0 | 0 | 2 | 2 |
 | **2: Frontend Core** | 0 | 2 | 0 | 2 |
 | **3: Frontend Supporting** | 0 | 4 | 0 | 4 |
-| **4: Tech Debt** | 0 | 0 | 16 | 16 |
+| **4: Tech Debt** | 0 | 0 | 14 | 14 |
 | **5: Testing/Docs/Deploy** | 0 | 0 | 4 | 4 |
-| **TOTAL** | **0** | **6** | **31** | **37** |
+| **TOTAL** | **5** | **7** | **23** | **35** |
 
 ---
 
 ## Blockers & Questions
 
 ### Current Blockers:
-1. **Pipeline bugs (Phase 0)** — Must fix before any data collection
-2. **LA Bounding Box** — Need verified coordinates
-3. **Disk Space** — Check available space for venue images (~5-10GB estimated)
+1. **Bug 0.6 (import path)** — Stage 4 & 5 won't compile. 1-line fix each.
+2. **Bug 0.8 (`delayMx` typo)** — No rate limiting on Overpass requests. Must fix before LA pipeline run or risk IP ban. 1-line fix.
+3. **LA Pipeline Run** — Can proceed once 0.6 and 0.8 are fixed. Bbox verified: `-118.67,33.70,-117.65,34.34`
 4. **`useVenueSearch` bypasses `apiClient`** (4.7) — Search page will silently break when tokens expire. Quick fix needed before any user testing.
 
 ### Questions to Resolve:
-- [ ] Confirm LA area boundaries for venue collection
-- [ ] Logo filter fix: add second CLIP text, or threshold-only? (see 0.4)
 - [ ] Hosting/deployment platform decision?
 - [ ] `feat/swipe-interface` branch: rebase + PR the alternative swipe implementation, or discard?
 - [ ] Clean up 3 stale feature branches? (see 4.11)
 
 ---
 
-**Next Step:** Fix Phase 0 bugs — start with `image-downloader.ts` (0.1) since it blocks Stage 3.
+**Next Step:** Fix bugs 0.6 and 0.8 (three 1-line changes total), then run LA pipeline.
 **Quick frontend win:** Fix `useVenueSearch.ts` to use `apiClient` (4.7) — 1-line import change.
