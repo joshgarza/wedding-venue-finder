@@ -109,9 +109,11 @@ export const crawlStage: Stage = {
         }
       }
       
-      await db('venues')
-        .where({ venue_id: venue.venue_id })
-        .update({ raw_markdown: aggregatedMarkdown });
+      if (aggregatedMarkdown.length > 0) {
+        await db('venues')
+          .where({ venue_id: venue.venue_id })
+          .update({ raw_markdown: aggregatedMarkdown });
+      }
 
       console.log(`✅ ${venue.name}: ${visited.size} pages | Final: ${aggregatedMarkdown.length} chars\n`);
     }
