@@ -76,42 +76,45 @@ export function useSwipeDeck(): UseSwipeDeckResult {
   }, [fetchBatch]);
 
   const swipe = useCallback((action: 'left' | 'right') => {
-    const currentDeck = deckRef.current;
-    const venue = currentDeck[currentIndex];
-    if (!venue) return;
+    setCurrentIndex((prev) => {
+      const currentDeck = deckRef.current;
+      const venue = currentDeck[prev];
+      if (!venue) return prev;
 
-    // POST /swipes - fire-and-forget
-    apiClient
-      .post('/swipes', {
-        venueId: String(venue.venue_id),
-        action: action === 'right' ? 'right' : 'left',
-      })
-      .catch((err) => {
-        // Silently catch 409 (duplicate swipe), log others
-        if (err.response?.status !== 409) {
-          console.error('Error recording swipe:', err);
-        }
-      });
+      // POST /swipes - fire-and-forget
+      apiClient
+        .post('/swipes', {
+          venueId: String(venue.venue_id),
+          action: action === 'right' ? 'right' : 'left',
+        })
+        .catch((err) => {
+          // Silently catch 409 (duplicate swipe), log others
+          if (err.response?.status !== 409) {
+            console.error('Error recording swipe:', err);
+          }
+        });
 
-    // If liked, also update taste profile - fire-and-forget
-    if (action === 'right') {
-      apiClient.post('/taste-profile/update', {}).catch((err) => {
-        console.error('Error updating taste profile:', err);
-      });
-    }
+      // If liked, also update taste profile - fire-and-forget
+      if (action === 'right') {
+        apiClient.post('/taste-profile/update', {}).catch((err) => {
+          console.error('Error updating taste profile:', err);
+        });
+      }
 
-    const nextIndex = currentIndex + 1;
-    setCurrentIndex(nextIndex);
+      const nextIndex = prev + 1;
 
-    // Prefetch when nearing end of deck
-    if (
-      nextIndex >= currentDeck.length - 2 &&
-      !loadingMoreRef.current &&
-      !exhaustedRef.current
-    ) {
-      fetchBatch(currentDeck.length, false);
-    }
-  }, [currentIndex, fetchBatch]);
+      // Prefetch when nearing end of deck
+      if (
+        nextIndex >= currentDeck.length - 2 &&
+        !loadingMoreRef.current &&
+        !exhaustedRef.current
+      ) {
+        fetchBatch(currentDeck.length, false);
+      }
+
+      return nextIndex;
+    });
+  }, [fetchBatch]);
 
   const currentVenue = deck[currentIndex] ?? null;
   const nextVenue = deck[currentIndex + 1] ?? null;

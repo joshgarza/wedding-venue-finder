@@ -25,7 +25,7 @@ export function useShortlist(): UseShortlistReturn {
       try {
         const response = await apiClient.get('/swipes/saved');
         if (!cancelled) {
-          setVenues(response.data.venues);
+          setVenues(response.data.data.venues);
         }
       } catch (err) {
         if (cancelled) return;
