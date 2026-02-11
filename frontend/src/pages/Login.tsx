@@ -38,8 +38,10 @@ const Login: React.FC = () => {
       navigate('/onboarding');
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
-        const axiosError = err as { response?: { data?: { error?: string } } };
-        setError(axiosError.response?.data?.error || 'Login failed. Please check your credentials.');
+        const axiosError = err as { response?: { data?: { error?: { message?: string } | string } } };
+        const apiError = axiosError.response?.data?.error;
+        const message = typeof apiError === 'object' ? apiError?.message : apiError;
+        setError(message || 'Login failed. Please check your credentials.');
       } else {
         setError('Login failed. Please try again.');
       }

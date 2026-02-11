@@ -1,3 +1,4 @@
+import fs from 'fs';
 import * as cliProgress from 'cli-progress';
 import { db } from '../../db/db-config';
 import { extractImageUrls, downloadImage } from '../utils/image-downloader';

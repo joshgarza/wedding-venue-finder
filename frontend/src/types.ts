@@ -58,3 +58,54 @@ export type VenueSearchResponse = {
   total_pages: number;
 };
 
+// Onboarding types
+export type OnboardingVenue = {
+  venueId: string;
+  name: string;
+  imagePath: string;
+};
+
+// Taste profile types
+export type TasteProfile = {
+  profileId: string;
+  userId: string;
+  descriptiveWords: string[];
+  confidence: number;
+};
+
+// Venue with swipe data (from GET /swipes/saved)
+export type VenueWithSwipe = {
+  venue_id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  website_url?: string | null;
+  image_data?: {
+    local_paths?: string[];
+  } | null;
+  pricing_tier?: PricingTier | null;
+  has_lodging?: boolean | null;
+  lodging_capacity?: number | null;
+  is_estate?: boolean | null;
+  is_historic?: boolean | null;
+  taste_score?: number | null;
+  swipe_timestamp?: string;
+};
+
+// Venue detail response (from GET /venues/:id)
+export type VenueDetailResponse = {
+  venue_id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  website_url?: string | null;
+  images: string[];
+  raw_markdown?: string | null;
+  pricing_tier?: PricingTier | null;
+  has_lodging?: boolean | null;
+  lodging_capacity?: number | null;
+  is_estate?: boolean | null;
+  is_historic?: boolean | null;
+  taste_score?: number | null;
+};
+

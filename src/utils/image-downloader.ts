@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import axios from 'axios';
@@ -10,6 +11,7 @@ export async function downloadImage(url: string, targetFolder: string, venueId: 
     await fs.promises.mkdir(targetFolder, { recursive: true });
     const hash = crypto.createHash('md5').update(url).digest('hex');
     const filename = `${hash.substring(0, 10)}${ext}`;
+    const targetPath = path.join(targetFolder, filename);
 
     // 3. Download with 5s timeout
     const response = await axios({
@@ -27,6 +29,7 @@ export async function downloadImage(url: string, targetFolder: string, venueId: 
     await pipeline(response.data, fs.createWriteStream(targetPath));
     return targetPath;
   } catch (err) {
+    console.error(`Failed to download image ${url}: ${(err as Error).message}`);
     return null;
   }
 }
