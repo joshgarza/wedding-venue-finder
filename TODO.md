@@ -61,21 +61,22 @@ These must be fixed before any pipeline run. The pipeline will crash or silently
 
 ---
 
-### 0.6 `stage_4_enrichment.ts` — Wrong import path (COMPILE ERROR)
-**File:** `src/pipeline/stage_4_enrichment.ts`
+### 0.6 Wrong import path in pipeline stages (COMPILE ERROR)
+**Files:** `src/pipeline/stage_4_enrichment.ts`, `src/pipeline/stage_5_image_filter.ts`
 **Status:** :x: Not Started
 
 **Bug:**
-- [ ] **Line 4:** `import { PipelineCtx, StageResult } from './types'` — file `./types` does not exist. Should be `'./stages'` (where `PipelineCtx` and `StageResult` are defined). Stage 4 will not compile.
+- [ ] **`stage_4_enrichment.ts` Line 4:** `import { PipelineCtx, StageResult } from './types'` — file `./types` does not exist. Should be `'./stages'` (where `PipelineCtx` and `StageResult` are defined). Stage 4 will not compile.
+- [ ] **`stage_5_image_filter.ts` Line 4:** Same wrong `'./types'` import path. Stage 5 will not compile either.
 
 ---
 
-### 0.7 `stage_4_enrichment.ts` — `extractionResult` scoping bug (CRASH)
+### 0.7 `stage_4_enrichment.ts` — `extractionResult` silent failure on Ollama errors
 **File:** `src/pipeline/stage_4_enrichment.ts`
 **Status:** :x: Not Started
 
-**Bug:**
-- [ ] **Lines ~110-119:** `extractionResult` is computed inside the retry `while` loop but the variable used after the loop is out of scope or uninitialized. The `if (extractionResult.success && extractionResult.data)` check after the loop will fail on the first venue.
+**Issue:**
+- [ ] **Lines ~68-119:** `extractionResult` is initialized to `{ success: false }` before the retry `while` loop. If all Ollama retries throw, it stays `{ success: false }` and the DB update is silently skipped — no crash, but no logging of which venues failed enrichment. Consider adding a warning log when all retries are exhausted.
 
 ---
 
