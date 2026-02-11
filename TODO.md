@@ -552,9 +552,9 @@ Checks `res.success` (L13) and throws to abort pipeline. Catch block re-throws, 
 | **1: Data Collection** | 0 | 0 | 2 | 2 |
 | **2: Frontend Core** | 0 | 2 | 0 | 2 |
 | **3: Frontend Supporting** | 0 | 4 | 0 | 4 |
-| **4: Tech Debt** | 0 | 0 | 14 | 14 |
+| **4: Tech Debt** | 0 | 0 | 12 | 12 |
 | **5: Testing/Docs/Deploy** | 0 | 0 | 4 | 4 |
-| **TOTAL** | **5** | **7** | **23** | **35** |
+| **TOTAL** | **5** | **7** | **21** | **33** |
 
 ---
 
