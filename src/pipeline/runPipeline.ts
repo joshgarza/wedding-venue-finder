@@ -11,12 +11,13 @@ export async function runPipeline(ctx: PipelineCtx, stages: Stage[]) {
       process.stderr.write(`\nStage successfully ran: ${res.success}\n`);
 
       if (!res.success) {
-        process.stderr.write(`\nPipeline aborted: stage "${stage.name}" failed.\n`);
-        return;
+        throw new Error(`Pipeline aborted: stage "${stage.name}" failed.`);
       }
     } catch (err) {
-      process.stderr.write(`\nPipeline aborted: stage "${stage.name}" threw: ${(err as Error).message}\n`);
-      return;
+      if (err instanceof Error && err.message.startsWith('Pipeline aborted:')) {
+        throw err;
+      }
+      throw new Error(`Pipeline aborted: stage "${stage.name}" threw: ${(err as Error).message}`);
     }
   }
 
