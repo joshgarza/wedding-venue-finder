@@ -85,6 +85,16 @@ cd ../wedding-venue-finder/<name> && npm install
 - The `docker-compose.yml` mounts paths relative to the worktree you run it from
 - **Run docker from one worktree at a time** to avoid port conflicts
 
+### Worktree Gotchas
+- **Bare repo fetch refspec**: `git clone --bare` does not configure `remote.origin.fetch`. If `origin/main` is missing, run from the bare repo:
+  ```bash
+  git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+  git fetch origin
+  ```
+- **Feature branches need rebase**: After merging changes to `main`, feature branches must `git rebase main` to pick up shared files like `.claude/hooks/` and `.gitignore`
+- **`npm install` is per-worktree**: Each worktree has its own `node_modules`. Run `npm install` after creating a new worktree
+- **Frontend uses `--legacy-peer-deps`**: Run `npm install --legacy-peer-deps` in the `frontend/` directory to avoid peer dependency errors
+
 ## Tech Stack
 
 - **Backend**: TypeScript with Node.js
