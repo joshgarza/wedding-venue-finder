@@ -28,7 +28,7 @@ Wedding Venue Finder is a data pipeline that collects, processes, and filters we
 ### Branch Protection
 - **NEVER commit directly to `main`** — a pre-commit hook will reject it
 - **NEVER create merge commits on `main`** — a pre-merge-commit hook will reject it
-- Only fast-forward merges (`git merge --ff-only`) are allowed on `main`
+- These hooks protect against local mistakes. Merges to `main` happen via PR on GitHub
 - If the Claude Code hook blocks your Edit/Write, you are on the `main` worktree — switch to a feature branch worktree
 
 ### Context Management
