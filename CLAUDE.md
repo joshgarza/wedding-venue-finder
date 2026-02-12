@@ -28,7 +28,7 @@ Wedding Venue Finder is a data pipeline that collects, processes, and filters we
 ### Branch Protection
 - **NEVER commit directly to `main`** — a pre-commit hook will reject it
 - **NEVER create merge commits on `main`** — a pre-merge-commit hook will reject it
-- Only fast-forward merges (`git merge --ff-only`) are allowed on `main`
+- These hooks protect against local mistakes. Merges to `main` happen via PR on GitHub
 - If the Claude Code hook blocks your Edit/Write, you are on the `main` worktree — switch to a feature branch worktree
 
 ### Context Management
@@ -77,9 +77,16 @@ From the hub directory (`wedding-venue-finder/`):
 ### Merging to Main
 1. Work and commit on a feature worktree
 2. Rebase onto main: `git rebase main`
-3. Switch to main worktree and fast-forward: `git merge --ff-only <branch>`
-4. Push: `git push origin main`
-5. Remove the worktree: `cd .. && ./remove-worktree.sh <name>`
+3. Push and open a PR:
+   ```bash
+   git push -u origin <branch>
+   gh pr create
+   ```
+4. After PR is approved and merged on GitHub:
+   ```bash
+   cd /home/josh/coding/claude/wedding-venue-finder/main && git pull origin main
+   cd .. && ./remove-worktree.sh <name>
+   ```
 
 ### Docker with Worktrees
 - Docker named volumes (`postgres_data`, `ollama_data`) are shared across worktrees
