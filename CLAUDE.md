@@ -45,40 +45,41 @@ This repo uses a **bare repo + worktree** layout. Each branch has its own direct
 /home/josh/coding/claude/
   wedding-venue-finder.git/          # Bare repository (do not work here directly)
     hooks/                           # Shared git hooks (pre-commit, pre-merge-commit)
-  wedding-venue-finder/              # Worktrees container
+  wedding-venue-finder/              # Worktrees container (coordination hub)
     main/                            # main branch (protected, read-only for agents)
-    feat-frontend-auth/              # Feature branch worktrees
-    feat-search-ui/
-    feat-swipe-interface/
-    feat-taste-profile-ui/
+    <feature-worktrees>/             # Created per-task, deleted after merge
   wedding-venue-finder-shared/       # Shared gitignored resources
     data/                            # Pipeline data (symlinked into each worktree)
     .env                             # Template env file
 ```
 
 ### How to Work
-- **Start Claude from a worktree directory** (e.g. `wedding-venue-finder/feat-frontend-auth/`)
+- **Start Claude from a worktree directory** (e.g. `wedding-venue-finder/<feature>/`)
 - Each worktree is a full working copy with its own `node_modules`, `.env`, and `data` symlink
 - All worktrees share the same git history via the bare repo
+- Feature worktrees are **temporary** — create for active work, delete after merging
 
-### Making Changes to Main
-1. Create or switch to a feature branch worktree
-2. Make changes and commit on the feature branch
-3. Rebase onto main: `git rebase main`
-4. Switch to main worktree and fast-forward: `git merge --ff-only <branch>`
+### Worktree Lifecycle
 
-### Creating a New Worktree
+From the hub directory (`wedding-venue-finder/`):
+
 ```bash
-cd /home/josh/coding/claude/wedding-venue-finder.git
-git worktree add ../wedding-venue-finder/<name> -b feat/<branch-name>
-# Then set up the worktree:
-cp /home/josh/coding/claude/wedding-venue-finder-shared/.env ../wedding-venue-finder/<name>/.env
-cp /home/josh/coding/claude/wedding-venue-finder/main/frontend/.env ../wedding-venue-finder/<name>/frontend/.env
-mkdir -p ../wedding-venue-finder/<name>/.claude
-cp /home/josh/coding/claude/wedding-venue-finder/main/.claude/settings.local.json ../wedding-venue-finder/<name>/.claude/settings.local.json
-ln -sfn /home/josh/coding/claude/wedding-venue-finder-shared/data ../wedding-venue-finder/<name>/data
-cd ../wedding-venue-finder/<name> && npm install
+# Create a worktree (handles .env, settings, data symlink, npm install)
+./create-worktree.sh <name> [branch-name]
+
+# Remove a worktree and its branch (after merge)
+./remove-worktree.sh <name>
+
+# Validate all worktrees have required config
+./check-worktrees.sh
 ```
+
+### Merging to Main
+1. Work and commit on a feature worktree
+2. Rebase onto main: `git rebase main`
+3. Switch to main worktree and fast-forward: `git merge --ff-only <branch>`
+4. Push: `git push origin main`
+5. Remove the worktree: `cd .. && ./remove-worktree.sh <name>`
 
 ### Docker with Worktrees
 - Docker named volumes (`postgres_data`, `ollama_data`) are shared across worktrees
@@ -92,7 +93,7 @@ cd ../wedding-venue-finder/<name> && npm install
   git fetch origin
   ```
 - **Feature branches need rebase**: After merging changes to `main`, feature branches must `git rebase main` to pick up shared files like `.claude/hooks/` and `.gitignore`
-- **`npm install` is per-worktree**: Each worktree has its own `node_modules`. Run `npm install` after creating a new worktree
+- **`npm install` is per-worktree**: Each worktree has its own `node_modules`. The `create-worktree.sh` script handles this automatically
 - **Frontend uses `--legacy-peer-deps`**: Run `npm install --legacy-peer-deps` in the `frontend/` directory to avoid peer dependency errors
 
 ## Tech Stack
