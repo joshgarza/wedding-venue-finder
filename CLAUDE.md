@@ -80,7 +80,7 @@ From the hub directory (`wedding-venue-finder/`):
 3. Push and open a PR:
    ```bash
    git push -u origin <branch>
-   cd /home/josh/coding/claude/wedding-venue-finder/main && gh pr create
+   gh pr create
    ```
 4. After PR is approved and merged on GitHub:
    ```bash
