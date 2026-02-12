@@ -77,9 +77,16 @@ From the hub directory (`wedding-venue-finder/`):
 ### Merging to Main
 1. Work and commit on a feature worktree
 2. Rebase onto main: `git rebase main`
-3. Switch to main worktree and fast-forward: `git merge --ff-only <branch>`
-4. Push: `git push origin main`
-5. Remove the worktree: `cd .. && ./remove-worktree.sh <name>`
+3. Push and open a PR:
+   ```bash
+   git push -u origin <branch>
+   cd /home/josh/coding/claude/wedding-venue-finder/main && gh pr create
+   ```
+4. After PR is approved and merged on GitHub:
+   ```bash
+   cd /home/josh/coding/claude/wedding-venue-finder/main && git pull origin main
+   cd .. && ./remove-worktree.sh <name>
+   ```
 
 ### Docker with Worktrees
 - Docker named volumes (`postgres_data`, `ollama_data`) are shared across worktrees
