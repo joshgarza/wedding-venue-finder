@@ -101,6 +101,7 @@ services:
       - venue_network
     depends_on:
       - api
+    restart: unless-stopped
 
 networks:
   venue_network:
