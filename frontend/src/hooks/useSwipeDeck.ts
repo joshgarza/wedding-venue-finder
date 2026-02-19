@@ -31,9 +31,12 @@ export function useSwipeDeck(): UseSwipeDeckResult {
   const [error, setError] = useState<string | null>(null);
   const [swipeHistory, setSwipeHistory] = useState<SwipeHistoryEntry[]>([]);
 
-  // Use ref to track deck length for pagination checks without stale closures
+  // Use refs to track state for event handlers without stale closures
   const deckRef = useRef(deck);
   deckRef.current = deck;
+
+  const currentIndexRef = useRef(currentIndex);
+  currentIndexRef.current = currentIndex;
 
   const loadingMoreRef = useRef(loadingMore);
   loadingMoreRef.current = loadingMore;
@@ -88,51 +91,49 @@ export function useSwipeDeck(): UseSwipeDeckResult {
   }, [fetchBatch]);
 
   const swipe = useCallback((action: 'left' | 'right') => {
-    setCurrentIndex((prev) => {
-      const currentDeck = deckRef.current;
-      const venue = currentDeck[prev];
-      if (!venue) return prev;
+    const currentDeck = deckRef.current;
+    const idx = currentIndexRef.current;
+    const venue = currentDeck[idx];
+    if (!venue) return;
 
-      // Track swipe history for undo
-      setSwipeHistory((h) => [...h, { venueId: String(venue.venue_id), action }]);
+    // Track swipe history for undo
+    setSwipeHistory((h) => [...h, { venueId: String(venue.venue_id), action }]);
 
-      // POST /swipes - fire-and-forget
-      apiClient
-        .post('/swipes', {
-          venueId: String(venue.venue_id),
-          action: action === 'right' ? 'right' : 'left',
-        })
-        .then(() => {
-          setError(null);
-        })
-        .catch((err) => {
-          // Silently catch 409 (duplicate swipe), log others
-          if (err.response?.status !== 409) {
-            console.error('Error recording swipe:', err);
-            setError('Failed to record swipe. Please try again.');
-          }
-        });
+    // POST /swipes - fire-and-forget
+    apiClient
+      .post('/swipes', {
+        venueId: String(venue.venue_id),
+        action: action === 'right' ? 'right' : 'left',
+      })
+      .then(() => {
+        setError(null);
+      })
+      .catch((err) => {
+        // Silently catch 409 (duplicate swipe), log others
+        if (err.response?.status !== 409) {
+          console.error('Error recording swipe:', err);
+          setError('Failed to record swipe. Please try again.');
+        }
+      });
 
-      // If liked, also update taste profile - fire-and-forget
-      if (action === 'right') {
-        apiClient.post('/taste-profile/update', {}).catch((err) => {
-          console.error('Error updating taste profile:', err);
-        });
-      }
+    // If liked, also update taste profile - fire-and-forget
+    if (action === 'right') {
+      apiClient.post('/taste-profile/update', {}).catch((err) => {
+        console.error('Error updating taste profile:', err);
+      });
+    }
 
-      const nextIndex = prev + 1;
+    const nextIndex = idx + 1;
+    setCurrentIndex(nextIndex);
 
-      // Prefetch when nearing end of deck
-      if (
-        nextIndex >= currentDeck.length - 2 &&
-        !loadingMoreRef.current &&
-        !exhaustedRef.current
-      ) {
-        fetchBatch(currentDeck.length, false);
-      }
-
-      return nextIndex;
-    });
+    // Prefetch when nearing end of deck
+    if (
+      nextIndex >= currentDeck.length - 2 &&
+      !loadingMoreRef.current &&
+      !exhaustedRef.current
+    ) {
+      fetchBatch(currentDeck.length, false);
+    }
   }, [fetchBatch]);
 
   const undo = useCallback(() => {
