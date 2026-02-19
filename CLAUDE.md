@@ -361,6 +361,10 @@ This project relies on several external services that can block progress:
 - Can be modified without affecting data processing
 - Only connection point is data export (CSV/JSON output from pipeline)
 
+## Tracking
+
+- **`TODO.md`** — Phased priority tracker for all project work (pipeline bugs, data collection, frontend, tech debt, testing/deploy). Check this before starting work to understand priorities and blockers.
+
 ## Important Notes
 
 - The pipeline processes venues in tiles to manage memory and API rate limits

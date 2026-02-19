@@ -351,6 +351,9 @@ Renamed `delayMx` to `delayMs` on line 19.
 - [ ] Polish animations (smooth transitions)
 - [ ] Add success/error toast notifications
 - [ ] Accessibility audit (keyboard nav, ARIA labels)
+- [ ] `HowItWorksModal.tsx` — Missing `role="dialog"`, `aria-modal="true"`, `aria-label` on close button, and Escape key handler. Will fail axe-core accessibility tests. *(from PR #17 review)*
+- [ ] `VenueDetail.tsx` — `useEffect` depends on `[venue]` object reference instead of `venue?.venue_id`, causing related venues fetch to re-fire on every re-render. Change dependency to `venue?.venue_id`. *(from PR #17 review)*
+- [ ] `useVenueDetail.ts` — Fetches entire `/swipes/saved` list just to check if one venue is saved. Add a backend `GET /api/v1/swipes/:venueId/status` endpoint to check a single venue's saved state. *(from PR #17 review)*
 
 ---
 
