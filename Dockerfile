@@ -37,5 +37,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/api/v1/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
-# Run seed (idempotent) then start API server
-CMD ["sh", "-c", "npm run seed && npm run api"]
+# Run seed (idempotent, non-fatal) then start API server
+CMD ["sh", "-c", "npm run seed || echo 'Seed failed, continuing...'; npm run api"]
