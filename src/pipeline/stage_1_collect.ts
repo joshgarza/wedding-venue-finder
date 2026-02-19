@@ -1,5 +1,6 @@
 import type { Stage } from "./stages";
-import { postOverpass, sleep } from "../utils/index";
+import { postOverpass, sleep, tileKey } from "../utils/index";
+import cliProgress from "cli-progress";
 
 export const collectStage: Stage = {
   name: "collect",
@@ -9,13 +10,38 @@ export const collectStage: Stage = {
     let totalElements = 0;
     let totalUpdated = 0;
 
-    for (let i = 0; i < tiles.length; i++) {
-      const t = tiles[i];
-      const tileRaw = `${t.minLon},${t.minLat},${t.maxLon},${t.maxLat}`;
-      process.stderr.write(`tile ${i + 1}/${tiles.length}: ${tileRaw}\n`);
+    // Resume: load already-collected tile keys
+    const hasTable = await db.schema.hasTable("collected_tiles");
+    const doneTiles = new Set<string>();
+    if (hasTable) {
+      const rows = await db("collected_tiles").select("tile_key");
+      for (const r of rows) doneTiles.add(r.tile_key);
+    }
+
+    const remaining = tiles.filter((t) => !doneTiles.has(tileKey(t)));
+    const skipped = tiles.length - remaining.length;
+
+    process.stderr.write(
+      `collect: ${tiles.length} total tiles, ${skipped} already done, ${remaining.length} remaining\n`
+    );
+
+    if (remaining.length === 0) {
+      process.stderr.write("collect: nothing to do\n");
+      return { success: true };
+    }
+
+    const bar = new cliProgress.SingleBar(
+      { format: "collect [{bar}] {percentage}% | {value}/{total} tiles | ETA: {eta_formatted}" },
+      cliProgress.Presets.shades_classic
+    );
+    bar.start(remaining.length, 0);
+
+    for (let i = 0; i < remaining.length; i++) {
+      const t = remaining[i];
+      const key = tileKey(t);
 
       try {
-        const { data, endpoint } = await postOverpass(ctx.overpass.endpoints, ctx.overpass.queryForBBox(t));
+        const { data } = await postOverpass(ctx.overpass.endpoints, ctx.overpass.queryForBBox(t));
         const elements: any[] = Array.isArray(data?.elements) ? data.elements : [];
         totalElements += elements.length;
 
@@ -28,7 +54,6 @@ export const collectStage: Stage = {
 
           const osmId = `${el.type}/${el.id}`;
 
-          // UPSERT logic: Insert new or update existing based on osm_id
           await db('venues')
             .insert({
               osm_id: osmId,
@@ -50,14 +75,25 @@ export const collectStage: Stage = {
           totalUpdated++;
         }
 
-        if (ctx.overpass.delayMs > 0 && i < tiles.length - 1) {
+        // Record tile as collected
+        if (hasTable) {
+          await db("collected_tiles")
+            .insert({ tile_key: key, element_count: elements.length })
+            .onConflict("tile_key")
+            .ignore();
+        }
+
+        if (ctx.overpass.delayMs > 0 && i < remaining.length - 1) {
           await sleep(ctx.overpass.delayMs);
         }
       } catch (err) {
-        process.stderr.write(`tile failed; skipping. ${String(err).slice(0, 100)}\n`);
+        process.stderr.write(`\ntile failed (${key}); skipping. ${String(err).slice(0, 100)}\n`);
       }
+
+      bar.increment();
     }
 
+    bar.stop();
     process.stderr.write(`collect: elements=${totalElements} upserted=${totalUpdated}\n`);
 
     return { success: true };

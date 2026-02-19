@@ -3,12 +3,16 @@ import process from "node:process";
 import fs from "node:fs";
 import path from "node:path";
 
-type BBox = { 
-	minLon: number; 
-	minLat: number; 
-	maxLon: number; 
-	maxLat: number 
+type BBox = {
+	minLon: number;
+	minLat: number;
+	maxLon: number;
+	maxLat: number
 };
+
+export function tileKey(t: BBox): string {
+  return `${t.minLon.toFixed(4)},${t.minLat.toFixed(4)},${t.maxLon.toFixed(4)},${t.maxLat.toFixed(4)}`;
+}
 
 export function tileBBox(
   bbox: BBox,
@@ -45,9 +49,17 @@ export function tileBBox(
 }
 
 export function getArg(name: string): string | undefined {
-  const idx = process.argv.indexOf(`--${name}`);
-  if (idx === -1) return undefined;
-  return process.argv[idx + 1];
+  const prefix = `--${name}`;
+  for (const arg of process.argv) {
+    if (arg === prefix) {
+      const idx = process.argv.indexOf(arg);
+      return process.argv[idx + 1];
+    }
+    if (arg.startsWith(prefix + "=")) {
+      return arg.slice(prefix.length + 1);
+    }
+  }
+  return undefined;
 }
 
 export function parseBBox(raw: string): BBox {
@@ -73,21 +85,33 @@ export function overpassQuery(b: BBox) {
   return `
 [out:json][timeout:90];
 (
-  // 1. Specific Amenities
+  // 1. Specific venue amenities
   node["amenity"~"events_venue|conference_centre|wedding_venue"]${bbox};
   way["amenity"~"events_venue|conference_centre|wedding_venue"]${bbox};
-  
-  // 2. Resorts (Removed the "booking:wedding" filter to see if we get ANY resorts first)
+
+  // 2. Resorts
   node["leisure"="resort"]${bbox};
   way["leisure"="resort"]${bbox};
 
-  // 3. Historic/Luxury types
+  // 3. Hotels
+  node["tourism"="hotel"]${bbox};
+  way["tourism"="hotel"]${bbox};
+
+  // 4. Golf courses / country clubs
+  node["leisure"="golf_course"]${bbox};
+  way["leisure"="golf_course"]${bbox};
+
+  // 5. Community centres
+  node["amenity"="community_centre"]${bbox};
+  way["amenity"="community_centre"]${bbox};
+
+  // 6. Historic/luxury types
   node["historic"~"manor|castle|stately_house"]${bbox};
   way["historic"~"manor|castle|stately_house"]${bbox};
 
-  // 4. Name-based search (Search for these names regardless of the 'building' tag)
-  node["name"~"Estate|Garden|Ranch|Vineyard|Winery",i]${bbox};
-  way["name"~"Estate|Garden|Ranch|Vineyard|Winery",i]${bbox};
+  // 7. Name-based search (expanded)
+  node["name"~"Estate|Garden|Ranch|Vineyard|Winery|Lodge|Inn|Chateau|Mansion|Barn|Retreat|Manor",i]${bbox};
+  way["name"~"Estate|Garden|Ranch|Vineyard|Winery|Lodge|Inn|Chateau|Mansion|Barn|Retreat|Manor",i]${bbox};
 );
 out body center;
 `.trim();
