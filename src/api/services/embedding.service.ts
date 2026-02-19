@@ -6,6 +6,8 @@
 
 import axios, { AxiosError } from 'axios';
 import pLimit from 'p-limit';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const CLIP_SERVICE_URL = process.env.CLIP_SERVICE_URL || 'http://localhost:51000';
 const EMBEDDING_DIMENSION = 512; // ViT-B/32 model
@@ -15,6 +17,51 @@ const DEFAULT_CONCURRENCY = 10;
 
 export class EmbeddingService {
   /**
+   * Convert a local file path to a base64 data URI.
+   * Returns the original string if it's already a URL.
+   * Handles path remapping when running inside Docker containers
+   * where host paths differ from container mount paths.
+   */
+  private static toImageUri(imagePath: string): string {
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://') || imagePath.startsWith('data:')) {
+      return imagePath;
+    }
+
+    let resolvedPath = imagePath;
+
+    // If the path doesn't exist, try remapping via data/venues/ segment
+    // (host absolute paths won't exist inside Docker containers)
+    if (!fs.existsSync(resolvedPath)) {
+      const marker = 'data/venues/';
+      const idx = imagePath.indexOf(marker);
+      if (idx !== -1) {
+        const relativePart = imagePath.substring(idx);
+        // Try common container mount points
+        const candidates = [
+          path.resolve('/app', relativePart),
+          path.resolve(process.cwd(), relativePart),
+        ];
+        for (const candidate of candidates) {
+          if (fs.existsSync(candidate)) {
+            resolvedPath = candidate;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!fs.existsSync(resolvedPath)) {
+      throw new Error(`Image file not found: ${imagePath} (also tried container remapping)`);
+    }
+
+    // Local file path — read and convert to base64 data URI
+    const ext = path.extname(resolvedPath).toLowerCase().replace('.', '');
+    const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+    const buffer = fs.readFileSync(resolvedPath);
+    return `data:${mime};base64,${buffer.toString('base64')}`;
+  }
+
+  /**
    * Generate CLIP embedding for a single image
    *
    * @param imagePath Local file path or URI to image
@@ -22,17 +69,19 @@ export class EmbeddingService {
    */
   static async generateImageEmbedding(imagePath: string): Promise<number[]> {
     try {
+      const uri = this.toImageUri(imagePath);
       const response = await axios.post(
-        `${CLIP_SERVICE_URL}/encode/image`,
+        `${CLIP_SERVICE_URL}/post`,
         {
-          data: [{ uri: imagePath }]
+          data: [{ uri }],
+          execEndpoint: '/encode'
         },
         {
           timeout: REQUEST_TIMEOUT
         }
       );
 
-      const embedding = response.data?.result?.[0];
+      const embedding = response.data?.data?.[0]?.embedding;
 
       if (!embedding || !Array.isArray(embedding)) {
         throw new Error('Invalid CLIP response format');
@@ -61,16 +110,17 @@ export class EmbeddingService {
 
     try {
       const response = await axios.post(
-        `${CLIP_SERVICE_URL}/encode/text`,
+        `${CLIP_SERVICE_URL}/post`,
         {
-          data: [text]
+          data: [{ text }],
+          execEndpoint: '/encode'
         },
         {
           timeout: REQUEST_TIMEOUT
         }
       );
 
-      const embedding = response.data?.result?.[0];
+      const embedding = response.data?.data?.[0]?.embedding;
 
       if (!embedding || !Array.isArray(embedding)) {
         throw new Error('Invalid CLIP response format');

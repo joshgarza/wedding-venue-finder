@@ -1,9 +1,8 @@
 import axios from 'axios';
 
-export class LogoFilter {
-  // Matches the service name in your docker-compose.yml
-  private static readonly CLIP_URL = 'http://clip_service:51000/rank';
+const CLIP_SERVICE_URL = process.env.CLIP_SERVICE_URL || 'http://localhost:51000';
 
+export class LogoFilter {
   /**
    * Discards images that are primarily logos or text graphics.
    */
@@ -15,23 +14,32 @@ export class LogoFilter {
           { text: "a business logo, watermark, or text graphic" },
           { text: "a photograph of a place or building" },
         ]
-      }]
+      }],
+      execEndpoint: '/rank'
     };
 
     try {
-      const response = await axios.post(this.CLIP_URL, payload);
-      const matches = response.data.result[0].matches;
+      const response = await axios.post(`${CLIP_SERVICE_URL}/post`, payload);
+      const matches = response.data.data[0].matches;
 
       // Find which label has the higher score
-      const logoScore = matches.find((m: any) => m.text.includes("logo")).scores.clip_score;
-      const photoScore = matches.find((m: any) => m.text.includes("photograph")).scores.clip_score;
+      const logoMatch = matches.find((m: any) => m.text.includes("logo"));
+      const photoMatch = matches.find((m: any) => m.text.includes("photograph"));
+
+      if (!logoMatch || !photoMatch) {
+        console.warn("Logo detection: unexpected match labels in CLIP response");
+        return false;
+      }
+
+      const logoScore = logoMatch.scores.clip_score.value;
+      const photoScore = photoMatch.scores.clip_score.value;
 
       // Strict threshold for logo detection to avoid false positives on architecture
       return logoScore > 0.85 && logoScore > photoScore;
     } catch (error) {
       console.error("Logo Detection Failed:", error);
       // In case of error, we keep the image to avoid over-filtering
-      return false; 
+      return false;
     }
   }
 }

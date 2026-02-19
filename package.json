@@ -47,6 +47,7 @@
     "test:enrichment": "NODE_OPTIONS='ts-node/esm' ts-node bin/test-enrichment.ts",
     "test:imageFilter": "NODE_OPTIONS='ts-node/esm' ts-node bin/test-image-filter.ts",
     "test:preVetting": "NODE_OPTIONS='ts-node/esm' ts-node bin/test-pre-vetting.ts",
-    "generate:embeddings": "NODE_OPTIONS='ts-node/esm' ts-node bin/generate-venue-embeddings.ts"
+    "generate:embeddings": "NODE_OPTIONS='ts-node/esm' ts-node bin/generate-venue-embeddings.ts",
+    "seed": "tsx bin/seed.ts"
   }
 }
