@@ -78,9 +78,10 @@ services:
       - FRONTEND_URL=http://localhost:5174
       - PORT=3000
     volumes:
-      - ./data/venues:/app/data/venues:ro
+      - ./data/venues:/app/data/venues
       - ./src:/app/src
       - ./db:/app/db
+      - ./bin:/app/bin
       - ./migrations:/app/migrations
     depends_on:
       - db
