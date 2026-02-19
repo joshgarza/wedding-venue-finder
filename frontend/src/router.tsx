@@ -7,6 +7,7 @@ import Search from './pages/Search';
 import Shortlist from './pages/Shortlist';
 import Profile from './pages/Profile';
 import VenueDetail from './pages/VenueDetail';
+import TasteProfile from './pages/TasteProfile';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthenticatedLayout } from './components/layouts/AuthenticatedLayout';
 
@@ -57,6 +58,10 @@ const router = createBrowserRouter([
       {
         path: '/venues/:id',
         element: <VenueDetail />,
+      },
+      {
+        path: '/taste-profile',
+        element: <TasteProfile />,
       },
     ],
   },

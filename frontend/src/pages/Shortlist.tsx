@@ -2,10 +2,12 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useShortlist } from '../hooks/useShortlist';
 import { VenueGrid } from '../components/VenueGrid';
+import { VenueListItem } from '../components/VenueListItem';
 import { localPathToImageUrl } from '../utils/image-url';
 import type { ApiVenue, VenueWithSwipe } from '../types';
 
-type SortKey = 'date_saved' | 'pricing_tier' | 'name';
+type SortKey = 'date_saved' | 'pricing_tier' | 'name' | 'taste_score';
+type ViewMode = 'grid' | 'list';
 
 const PRICING_ORDER: Record<string, number> = {
   low: 1,
@@ -31,6 +33,12 @@ function sortVenues(venues: VenueWithSwipe[], sortKey: SortKey): VenueWithSwipe[
       });
     case 'name':
       return sorted.sort((a, b) => a.name.localeCompare(b.name));
+    case 'taste_score':
+      return sorted.sort((a, b) => {
+        const scoreA = a.taste_score ?? -1;
+        const scoreB = b.taste_score ?? -1;
+        return scoreB - scoreA; // highest first, nulls last
+      });
     default:
       return sorted;
   }
@@ -40,6 +48,7 @@ const Shortlist: React.FC = () => {
   const navigate = useNavigate();
   const { venues, loading, error, unsave } = useShortlist();
   const [sortKey, setSortKey] = useState<SortKey>('date_saved');
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
   const sortedVenues = useMemo(() => sortVenues(venues, sortKey), [venues, sortKey]);
 
@@ -117,7 +126,42 @@ const Shortlist: React.FC = () => {
               <option value="date_saved">Date saved</option>
               <option value="pricing_tier">Pricing tier</option>
               <option value="name">Name</option>
+              <option value="taste_score">Taste score</option>
             </select>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button
+                onClick={() => setViewMode('grid')}
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: 6,
+                  border: '1px solid #e5e7eb',
+                  background: viewMode === 'grid' ? '#2563eb' : 'white',
+                  color: viewMode === 'grid' ? 'white' : '#6b7280',
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  lineHeight: 1,
+                }}
+                title="Grid view"
+              >
+                ▦
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: 6,
+                  border: '1px solid #e5e7eb',
+                  background: viewMode === 'list' ? '#2563eb' : 'white',
+                  color: viewMode === 'list' ? 'white' : '#6b7280',
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  lineHeight: 1,
+                }}
+                title="List view"
+              >
+                ☰
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -203,8 +247,8 @@ const Shortlist: React.FC = () => {
           </div>
         )}
 
-        {/* Venue grid */}
-        {!loading && venues.length > 0 && (
+        {/* Venue grid/list */}
+        {!loading && venues.length > 0 && viewMode === 'grid' && (
           <VenueGrid
             venues={gridVenues}
             loading={false}
@@ -212,6 +256,19 @@ const Shortlist: React.FC = () => {
             onSaveToggle={handleSaveToggle}
             savedVenueIds={savedVenueIds}
           />
+        )}
+
+        {!loading && venues.length > 0 && viewMode === 'list' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {sortedVenues.map((v) => (
+              <VenueListItem
+                key={v.venue_id}
+                venue={v}
+                onUnsave={() => unsave(v.venue_id)}
+                onClick={() => navigate(`/venues/${v.venue_id}`)}
+              />
+            ))}
+          </div>
         )}
       </div>
     </div>

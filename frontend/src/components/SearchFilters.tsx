@@ -241,11 +241,12 @@ export function SearchFilters({ filters, onFiltersChange, onClose, isMobile }: S
             step="5"
             value={radiusMiles}
             onChange={(e) => {
-              const miles = parseInt(e.target.value, 10);
-              setRadiusMiles(miles);
+              setRadiusMiles(parseInt(e.target.value, 10));
+            }}
+            onPointerUp={() => {
               onFiltersChange({
                 ...filters,
-                radius_meters: milesToMeters(miles),
+                radius_meters: milesToMeters(radiusMiles),
               });
             }}
             style={{ width: '100%' }}

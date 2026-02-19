@@ -10,6 +10,16 @@ export interface UseSwipeDeckResult {
   swipe: (action: 'left' | 'right') => void;
   loading: boolean;
   isEmpty: boolean;
+  error: string | null;
+  dismissError: () => void;
+  undo: () => void;
+  canUndo: boolean;
+  retryFetch: () => void;
+}
+
+interface SwipeHistoryEntry {
+  venueId: string;
+  action: string;
 }
 
 export function useSwipeDeck(): UseSwipeDeckResult {
@@ -18,6 +28,8 @@ export function useSwipeDeck(): UseSwipeDeckResult {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [exhausted, setExhausted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [swipeHistory, setSwipeHistory] = useState<SwipeHistoryEntry[]>([]);
 
   // Use ref to track deck length for pagination checks without stale closures
   const deckRef = useRef(deck);
@@ -81,16 +93,23 @@ export function useSwipeDeck(): UseSwipeDeckResult {
       const venue = currentDeck[prev];
       if (!venue) return prev;
 
+      // Track swipe history for undo
+      setSwipeHistory((h) => [...h, { venueId: String(venue.venue_id), action }]);
+
       // POST /swipes - fire-and-forget
       apiClient
         .post('/swipes', {
           venueId: String(venue.venue_id),
           action: action === 'right' ? 'right' : 'left',
         })
+        .then(() => {
+          setError(null);
+        })
         .catch((err) => {
           // Silently catch 409 (duplicate swipe), log others
           if (err.response?.status !== 409) {
             console.error('Error recording swipe:', err);
+            setError('Failed to record swipe. Please try again.');
           }
         });
 
@@ -116,6 +135,33 @@ export function useSwipeDeck(): UseSwipeDeckResult {
     });
   }, [fetchBatch]);
 
+  const undo = useCallback(() => {
+    if (swipeHistory.length === 0) return;
+
+    const lastSwipe = swipeHistory[swipeHistory.length - 1];
+    setSwipeHistory((h) => h.slice(0, -1));
+    setCurrentIndex((prev) => Math.max(0, prev - 1));
+
+    // Fire-and-forget undo POST
+    apiClient
+      .post('/swipes', {
+        venueId: lastSwipe.venueId,
+        action: 'undo',
+      })
+      .catch(() => {
+        // Undo is best-effort
+      });
+  }, [swipeHistory]);
+
+  const retryFetch = useCallback(() => {
+    setExhausted(false);
+    fetchBatch(deckRef.current.length, deckRef.current.length === 0);
+  }, [fetchBatch]);
+
+  const dismissError = useCallback(() => {
+    setError(null);
+  }, []);
+
   const currentVenue = deck[currentIndex] ?? null;
   const nextVenue = deck[currentIndex + 1] ?? null;
   const isEmpty = !loading && currentVenue === null && exhausted;
@@ -126,5 +172,10 @@ export function useSwipeDeck(): UseSwipeDeckResult {
     swipe,
     loading,
     isEmpty,
+    error,
+    dismissError,
+    undo,
+    canUndo: swipeHistory.length > 0,
+    retryFetch,
   };
 }

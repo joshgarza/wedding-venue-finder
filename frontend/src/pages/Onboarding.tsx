@@ -24,11 +24,23 @@ const Onboarding: React.FC = () => {
     swipe,
     profile,
     error,
+    swipeError,
+    dismissSwipeError,
+    retry,
+    isRefine,
   } = useOnboarding();
 
   const handleComplete = async () => {
-    await refreshUser();
-    navigate('/swipe');
+    try {
+      await refreshUser();
+    } catch {
+      // /auth/me may not exist — continue anyway
+    }
+    if (isRefine) {
+      navigate('/profile');
+    } else {
+      navigate('/swipe');
+    }
   };
 
   return (
@@ -52,7 +64,7 @@ const Onboarding: React.FC = () => {
           marginBottom: 24,
         }}
       >
-        Find Your Style
+        {isRefine ? 'Refine Your Taste' : 'Find Your Style'}
       </h1>
 
       {/* Loading Phase */}
@@ -71,6 +83,41 @@ const Onboarding: React.FC = () => {
           }}
         >
           <ProgressDots current={currentIndex} total={totalCount} />
+
+          {/* Swipe error banner */}
+          {swipeError && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                backgroundColor: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: 8,
+                padding: '8px 12px',
+                maxWidth: 300,
+                width: '100%',
+              }}
+            >
+              <span style={{ color: '#ef4444', fontSize: 14, flex: 1 }}>
+                {swipeError}
+              </span>
+              <button
+                onClick={dismissSwipeError}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#6b7280',
+                  fontSize: 18,
+                  cursor: 'pointer',
+                  padding: '0 4px',
+                  lineHeight: 1,
+                }}
+              >
+                &times;
+              </button>
+            </div>
+          )}
 
           <div
             style={{
@@ -119,6 +166,22 @@ const Onboarding: React.FC = () => {
               Like
             </button>
           </div>
+
+          {/* Skip Onboarding */}
+          <button
+            onClick={() => navigate('/swipe')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#6b7280',
+              fontSize: 14,
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              marginTop: 4,
+            }}
+          >
+            Skip onboarding
+          </button>
         </div>
       )}
 
@@ -202,7 +265,7 @@ const Onboarding: React.FC = () => {
             Confidence: {Math.round(profile.confidence * 100)}%
           </p>
 
-          {/* Start Swiping button */}
+          {/* Completion button */}
           <button
             onClick={handleComplete}
             style={{
@@ -217,7 +280,7 @@ const Onboarding: React.FC = () => {
               marginTop: 8,
             }}
           >
-            Start Swiping
+            {isRefine ? 'Back to Profile' : 'Start Swiping'}
           </button>
         </div>
       )}
@@ -236,7 +299,7 @@ const Onboarding: React.FC = () => {
             {error || 'Something went wrong'}
           </p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={retry}
             style={{
               padding: '10px 24px',
               fontSize: 16,
@@ -249,6 +312,19 @@ const Onboarding: React.FC = () => {
             }}
           >
             Try Again
+          </button>
+          <button
+            onClick={handleComplete}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#6b7280',
+              fontSize: 14,
+              cursor: 'pointer',
+              textDecoration: 'underline',
+            }}
+          >
+            Continue without profile
           </button>
         </div>
       )}

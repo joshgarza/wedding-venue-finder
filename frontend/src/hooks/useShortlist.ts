@@ -49,14 +49,34 @@ export function useShortlist(): UseShortlistReturn {
   }, []);
 
   const unsave = useCallback((venueId: string) => {
-    // Optimistically remove from local list
-    setVenues((prev) => prev.filter((v) => v.venue_id !== venueId));
+    // Capture venue and index for rollback
+    let removedVenue: VenueWithSwipe | undefined;
+    let removedIndex = -1;
+
+    setVenues((prev) => {
+      removedIndex = prev.findIndex((v) => v.venue_id === venueId);
+      if (removedIndex !== -1) {
+        removedVenue = prev[removedIndex];
+      }
+      return prev.filter((v) => v.venue_id !== venueId);
+    });
 
     apiClient
       .post('/swipes', { venueId, action: 'unsave' })
       .catch((err) => {
         console.error('Failed to unsave venue:', err);
-        // Could re-fetch here but keep it simple
+        // Rollback: re-insert venue at original position
+        if (removedVenue) {
+          const venue = removedVenue;
+          const idx = removedIndex;
+          setVenues((prev) => {
+            const next = [...prev];
+            next.splice(Math.min(idx, next.length), 0, venue);
+            return next;
+          });
+        }
+        setError('Failed to remove venue. It has been restored.');
+        setTimeout(() => setError(null), 3000);
       });
   }, []);
 

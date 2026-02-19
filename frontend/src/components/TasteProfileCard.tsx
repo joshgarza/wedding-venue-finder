@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { TasteProfile } from '../types';
+import { HowItWorksModal } from './HowItWorksModal';
 
 interface TasteProfileCardProps {
   profile: TasteProfile | null;
@@ -9,6 +10,7 @@ interface TasteProfileCardProps {
 
 export const TasteProfileCard: React.FC<TasteProfileCardProps> = ({ profile, loading }) => {
   const navigate = useNavigate();
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
 
   if (loading) {
     return (
@@ -156,13 +158,28 @@ export const TasteProfileCard: React.FC<TasteProfileCardProps> = ({ profile, loa
           }}
         />
       </div>
-      <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>
-        {confidencePercent}% confidence
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <span style={{ fontSize: 13, color: '#6b7280' }}>
+          {confidencePercent}% confidence
+        </span>
+        <button
+          onClick={() => setShowHowItWorks(true)}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: 13,
+            color: '#2563eb',
+            padding: 0,
+          }}
+        >
+          How does this work?
+        </button>
       </div>
 
       {/* Refine button */}
       <button
-        onClick={() => navigate('/swipe')}
+        onClick={() => navigate('/onboarding?refine=true')}
         style={{
           padding: '10px 20px',
           fontSize: 14,
@@ -177,6 +194,8 @@ export const TasteProfileCard: React.FC<TasteProfileCardProps> = ({ profile, loa
       >
         Refine Profile
       </button>
+
+      <HowItWorksModal open={showHowItWorks} onClose={() => setShowHowItWorks(false)} />
     </div>
   );
 };

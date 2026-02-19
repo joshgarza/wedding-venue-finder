@@ -50,8 +50,9 @@ const Signup: React.FC = () => {
       navigate('/onboarding');
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
-        const axiosError = err as { response?: { data?: { error?: string } } };
-        setError(axiosError.response?.data?.error || 'Signup failed. Please try again.');
+        const axiosError = err as { response?: { data?: { error?: unknown } } };
+        const errMsg = axiosError.response?.data?.error;
+        setError(typeof errMsg === 'string' ? errMsg : 'Signup failed. Please try again.');
       } else {
         setError('Signup failed. Please try again.');
       }

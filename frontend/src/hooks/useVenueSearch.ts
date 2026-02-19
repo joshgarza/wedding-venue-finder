@@ -1,9 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-import { getAccessToken } from '../utils/auth.utils';
+import apiClient from '../utils/api-client';
 import type { SearchFilters, VenueSearchResponse, ApiVenue } from '../types';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3003';
 
 export interface UseVenueSearchResult {
   venues: ApiVenue[];
@@ -36,62 +33,48 @@ export function useVenueSearch(filters: SearchFilters): UseVenueSearchResult {
       setLoading(true);
       setError(null);
 
-      const token = getAccessToken();
-      if (!token) {
-        throw new Error('Not authenticated');
-      }
-
       // Build query parameters
-      const params = new URLSearchParams();
+      const params: Record<string, string | string[]> = {};
 
       if (debouncedFilters.pricing_tier && debouncedFilters.pricing_tier.length > 0) {
-        debouncedFilters.pricing_tier.forEach((tier) => {
-          params.append('pricing_tier', tier);
-        });
+        params.pricing_tier = debouncedFilters.pricing_tier;
       }
 
       if (debouncedFilters.has_lodging !== undefined) {
-        params.append('has_lodging', String(debouncedFilters.has_lodging));
+        params.has_lodging = String(debouncedFilters.has_lodging);
       }
 
       if (debouncedFilters.is_estate !== undefined) {
-        params.append('is_estate', String(debouncedFilters.is_estate));
+        params.is_estate = String(debouncedFilters.is_estate);
       }
 
       if (debouncedFilters.is_historic !== undefined) {
-        params.append('is_historic', String(debouncedFilters.is_historic));
+        params.is_historic = String(debouncedFilters.is_historic);
       }
 
       if (debouncedFilters.lodging_capacity_min !== undefined) {
-        params.append('lodging_capacity_min', String(debouncedFilters.lodging_capacity_min));
+        params.lodging_capacity_min = String(debouncedFilters.lodging_capacity_min);
       }
 
       if (debouncedFilters.lat !== undefined && debouncedFilters.lng !== undefined && debouncedFilters.radius_meters !== undefined) {
-        params.append('lat', String(debouncedFilters.lat));
-        params.append('lng', String(debouncedFilters.lng));
-        params.append('radius_meters', String(debouncedFilters.radius_meters));
+        params.lat = String(debouncedFilters.lat);
+        params.lng = String(debouncedFilters.lng);
+        params.radius_meters = String(debouncedFilters.radius_meters);
       }
 
       if (debouncedFilters.sort) {
-        params.append('sort', debouncedFilters.sort);
+        params.sort = debouncedFilters.sort;
       }
 
       if (debouncedFilters.limit) {
-        params.append('limit', String(debouncedFilters.limit));
+        params.limit = String(debouncedFilters.limit);
       }
 
       if (debouncedFilters.offset !== undefined) {
-        params.append('offset', String(debouncedFilters.offset));
+        params.offset = String(debouncedFilters.offset);
       }
 
-      const response = await axios.get<VenueSearchResponse>(
-        `${API_BASE_URL}/venues?${params.toString()}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await apiClient.get<VenueSearchResponse>('/venues', { params });
 
       setVenues(response.data.venues);
       setTotalCount(response.data.total_count);
