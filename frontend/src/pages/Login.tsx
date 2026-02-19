@@ -7,6 +7,7 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isDemoLoading, setIsDemoLoading] = useState(false);
 
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -47,6 +48,20 @@ const Login: React.FC = () => {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    setIsDemoLoading(true);
+    setError('');
+
+    try {
+      await login('test@example.com', 'test1234');
+      navigate('/onboarding');
+    } catch {
+      setError('Demo login failed. Make sure seed data exists (npm run seed).');
+    } finally {
+      setIsDemoLoading(false);
     }
   };
 
@@ -125,16 +140,16 @@ const Login: React.FC = () => {
 
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || isDemoLoading}
             style={{
               width: '100%',
               padding: '0.75rem',
               fontSize: '1rem',
-              backgroundColor: isLoading ? '#ccc' : '#007bff',
+              backgroundColor: isLoading || isDemoLoading ? '#ccc' : '#007bff',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
+              cursor: isLoading || isDemoLoading ? 'not-allowed' : 'pointer',
             }}
           >
             {isLoading ? 'Logging in...' : 'Login'}
@@ -147,6 +162,34 @@ const Login: React.FC = () => {
             Sign up
           </Link>
         </p>
+
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          margin: '1rem 0',
+        }}>
+          <div style={{ flex: 1, height: '1px', backgroundColor: '#ddd' }} />
+          <span style={{ padding: '0 0.75rem', color: '#999', fontSize: '0.875rem' }}>or</span>
+          <div style={{ flex: 1, height: '1px', backgroundColor: '#ddd' }} />
+        </div>
+
+        <button
+          type="button"
+          onClick={handleDemoLogin}
+          disabled={isLoading || isDemoLoading}
+          style={{
+            width: '100%',
+            padding: '0.75rem',
+            fontSize: '1rem',
+            backgroundColor: 'transparent',
+            border: '2px solid #007bff',
+            color: '#007bff',
+            borderRadius: '4px',
+            cursor: isLoading || isDemoLoading ? 'not-allowed' : 'pointer',
+          }}
+        >
+          {isDemoLoading ? 'Starting demo...' : 'Try Demo'}
+        </button>
       </div>
     </div>
   );

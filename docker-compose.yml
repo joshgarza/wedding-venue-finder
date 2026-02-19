@@ -50,6 +50,9 @@ services:
       container_name: clip_service
       ports:
         - "51000:51000"
+      volumes:
+        - ./clip-flow.yml:/tmp/clip-flow.yml:ro
+      command: ["/tmp/clip-flow.yml"]
       networks:
         - venue_network
       restart: always
@@ -72,7 +75,7 @@ services:
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-here-change-in-production}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-your-refresh-secret-key-here-change-in-production}
       - NODE_ENV=development
-      - FRONTEND_URL=http://localhost:5173
+      - FRONTEND_URL=http://localhost:5174
       - PORT=3000
     volumes:
       - ./data/venues:/app/data/venues:ro
@@ -91,7 +94,7 @@ services:
     working_dir: /app
     command: sh -c "npm install --legacy-peer-deps && npx vite --host 0.0.0.0"
     ports:
-      - "5173:5173"
+      - "5174:5173"
     environment:
       - API_URL=http://wedding_api:3000
     volumes:
