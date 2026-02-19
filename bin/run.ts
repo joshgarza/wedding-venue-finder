@@ -119,10 +119,12 @@ async function main() {
 	}
 
 	/* ── Build context & run ───────────────────────────────── */
-	const ctx = {
+	const ctx: import("../src/pipeline/stages").PipelineCtx = {
 		db,
 		bboxRaw,
 		tiles,
+		dataDir: "data",
+		publicOut: "public/venues.ndjson",
 		overpass: {
 			endpoints: [
 				"https://overpass-api.de/api/interpreter",
@@ -135,7 +137,7 @@ async function main() {
 	};
 
 	try {
-		await runPipeline(ctx as any, stages);
+		await runPipeline(ctx, stages);
 	} finally {
 		await db.destroy();
 	}

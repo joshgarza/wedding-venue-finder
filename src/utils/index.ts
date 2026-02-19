@@ -50,13 +50,10 @@ export function tileBBox(
 
 export function getArg(name: string): string | undefined {
   const prefix = `--${name}`;
-  for (const arg of process.argv) {
-    if (arg === prefix) {
-      const idx = process.argv.indexOf(arg);
-      return process.argv[idx + 1];
-    }
-    if (arg.startsWith(prefix + "=")) {
-      return arg.slice(prefix.length + 1);
+  for (let i = 0; i < process.argv.length; i++) {
+    if (process.argv[i] === prefix) return process.argv[i + 1];
+    if (process.argv[i].startsWith(prefix + "=")) {
+      return process.argv[i].slice(prefix.length + 1);
     }
   }
   return undefined;
