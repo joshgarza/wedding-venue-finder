@@ -25,6 +25,12 @@ export class LogoFilter {
       // Find which label has the higher score
       const logoMatch = matches.find((m: any) => m.text.includes("logo"));
       const photoMatch = matches.find((m: any) => m.text.includes("photograph"));
+
+      if (!logoMatch || !photoMatch) {
+        console.warn("Logo detection: unexpected match labels in CLIP response");
+        return false;
+      }
+
       const logoScore = logoMatch.scores.clip_score.value;
       const photoScore = photoMatch.scores.clip_score.value;
 

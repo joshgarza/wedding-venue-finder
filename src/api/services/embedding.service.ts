@@ -50,6 +50,10 @@ export class EmbeddingService {
       }
     }
 
+    if (!fs.existsSync(resolvedPath)) {
+      throw new Error(`Image file not found: ${imagePath} (also tried container remapping)`);
+    }
+
     // Local file path — read and convert to base64 data URI
     const ext = path.extname(resolvedPath).toLowerCase().replace('.', '');
     const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';

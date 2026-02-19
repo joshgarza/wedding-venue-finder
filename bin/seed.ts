@@ -259,13 +259,12 @@ async function main() {
 }
 
 main()
-  .then(() => {
+  .then(async () => {
+    await db.destroy();
     process.exit(0);
   })
-  .catch((err) => {
+  .catch(async (err) => {
     console.error("Seed failed:", err);
+    await db.destroy();
     process.exit(1);
-  })
-  .finally(() => {
-    db.destroy();
   });
