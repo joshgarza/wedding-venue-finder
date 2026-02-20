@@ -31,6 +31,14 @@ Wedding Venue Finder is a data pipeline that collects, processes, and filters we
 - These hooks protect against local mistakes. Merges to `main` happen via PR on GitHub
 - If the Claude Code hook blocks your Edit/Write, you are on the `main` worktree — switch to a feature branch worktree
 
+### Docker Protection
+- **NEVER run destructive Docker commands on `main`** — a PreToolUse hook will block it
+- Destructive commands: `docker compose {down,stop,rm,up,build,restart,create,start}`
+- Read-only commands are allowed: `docker compose {ps,logs,exec,config,images,inspect}`
+- Use `./docker.sh` in your feature worktree for your own isolated stack
+- Use `./docker.sh exec db psql ...` instead of `npm run db:shell` (which targets main's stack)
+- GPU services (ollama, clip_api) run on main's network — start main's stack first
+
 ### Context Management
 - Pipeline stages process data sequentially - note which stage you're working on
 - Check error logs (`.crawl_errors.log`, `filter_errors.log`, `image_errors.log`) for debugging
@@ -89,9 +97,12 @@ From the hub directory (`wedding-venue-finder/`):
    ```
 
 ### Docker with Worktrees
-- Docker named volumes (`postgres_data`, `ollama_data`) are shared across worktrees
-- The `docker-compose.yml` mounts paths relative to the worktree you run it from
-- **Run docker from one worktree at a time** to avoid port conflicts
+- Each feature worktree has its own isolated Docker stack (db, api, frontend) via `./docker.sh`
+- GPU services (ollama, clip_api, crawler) are shared from main's network (`main_venue_network`)
+- **Start main's stack first** (`cd main && docker compose up -d`) for GPU service access
+- Worktree ports are auto-allocated (+10 offset per worktree) — check `.env.docker` for your ports
+- Use `./docker.sh exec db psql -U postgres -d wedding_venue_finder` for DB access (not `npm run db:shell`)
+- To rebuild main after merging infra changes: `./rebuild-main.sh` (from hub directory)
 
 ### Worktree Gotchas
 - **Bare repo fetch refspec**: `git clone --bare` does not configure `remote.origin.fetch`. If `origin/main` is missing, run from the bare repo:
