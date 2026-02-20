@@ -4,12 +4,18 @@ import { db } from '../../../db/db-config';
 
 // Mock dependencies
 vi.mock('../../../db/db-config', () => ({
-  db: vi.fn()
+  db: vi.fn(),
+  getDb: vi.fn(() => vi.fn())
 }));
 
 // Mock taste-profile service
 vi.mock('../../../src/api/services/taste-profile.service', () => ({
   updateProfile: vi.fn()
+}));
+
+// Mock venue service (getTasteScore used by getShortlist)
+vi.mock('../../../src/api/services/venue.service', () => ({
+  getTasteScore: vi.fn().mockResolvedValue(0.75)
 }));
 
 import * as tasteProfileService from '../../../src/api/services/taste-profile.service';
@@ -151,15 +157,15 @@ describe('Swipe Service', () => {
       ).rejects.toThrow('Venue already swiped');
     });
 
-    it('should delete previous right swipe when action is unsave', async () => {
+    it('should delete any existing swipe when action is unsave', async () => {
       const userId = 'user-123';
       const venueId = 'venue-456';
       const action = 'unsave';
 
-      // Mock finding existing 'right' swipe
+      // Mock finding existing swipe (any action type)
       const mockCheckQuery = {
         where: vi.fn().mockResolvedValue([
-          { swipe_id: 'swipe-right-001', action: 'right', session_id: null }
+          { swipe_id: 'swipe-001', action: 'left', session_id: null }
         ])
       };
 
@@ -248,7 +254,7 @@ describe('Swipe Service', () => {
   });
 
   describe('getShortlist', () => {
-    it('should return all venues with right swipes', async () => {
+    it('should return all venues with right swipes and taste scores', async () => {
       const userId = 'user-123';
 
       const mockVenues = [
@@ -288,11 +294,14 @@ describe('Swipe Service', () => {
         where: mockWhere,
         orderBy: mockOrderBy
       } as any);
+      (db as any).raw = vi.fn((sql: string) => sql);
 
       const result = await swipeService.getShortlist(userId);
 
       expect(result).toHaveLength(2);
       expect(result[0].name).toBe('Beautiful Estate');
+      expect(result[0]).toHaveProperty('taste_score');
+      expect(result[1]).toHaveProperty('taste_score');
       expect(mockWhere).toHaveBeenCalledWith({
         's.user_id': userId,
         's.action': 'right'
@@ -312,6 +321,7 @@ describe('Swipe Service', () => {
         where: mockWhere,
         orderBy: mockOrderBy
       } as any);
+      (db as any).raw = vi.fn((sql: string) => sql);
 
       const result = await swipeService.getShortlist(userId);
 

@@ -147,7 +147,7 @@ export function useSwipeDeck(): UseSwipeDeckResult {
     apiClient
       .post('/swipes', {
         venueId: lastSwipe.venueId,
-        action: 'undo',
+        action: 'unsave',
       })
       .catch(() => {
         // Undo is best-effort

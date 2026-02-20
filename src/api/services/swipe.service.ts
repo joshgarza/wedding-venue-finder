@@ -1,5 +1,6 @@
 import { db } from '../../../db/db-config';
 import { updateProfile } from './taste-profile.service';
+import { getTasteScore } from './venue.service';
 
 export type SwipeAction = 'right' | 'left' | 'unsave';
 
@@ -57,10 +58,10 @@ export async function recordSwipe(
     .where({ user_id: userId, venue_id: venueId });
 
   if (action === 'unsave') {
-    // Find and delete the 'right' swipe
-    const rightSwipe = existingSwipes.find(s => s.action === 'right');
+    // Find and delete any existing swipe for this venue
+    const existingSwipe = existingSwipes[0];
 
-    if (!rightSwipe) {
+    if (!existingSwipe) {
       throw new Error('No saved swipe found to unsave');
     }
 
@@ -68,17 +69,16 @@ export async function recordSwipe(
       .where({
         user_id: userId,
         venue_id: venueId,
-        action: 'right'
       })
       .delete();
 
     // Return the deleted swipe record
     return {
-      swipe_id: rightSwipe.swipe_id,
+      swipe_id: existingSwipe.swipe_id,
       user_id: userId,
       venue_id: venueId,
       action: 'unsave',
-      session_id: rightSwipe.session_id,
+      session_id: existingSwipe.session_id,
       timestamp: new Date()
     };
   }
@@ -127,8 +127,8 @@ export async function getShortlist(userId: string): Promise<VenueWithSwipe[]> {
     .select(
       'v.venue_id',
       'v.name',
-      'v.lat',
-      'v.lng',
+      db.raw('ST_Y(v.location_lat_long) as lat'),
+      db.raw('ST_X(v.location_lat_long) as lng'),
       'v.website_url',
       'v.image_data',
       'v.is_wedding_venue',
@@ -146,7 +146,15 @@ export async function getShortlist(userId: string): Promise<VenueWithSwipe[]> {
     })
     .orderBy('s.timestamp', 'desc');
 
-  return venues;
+  // Compute taste scores for each venue
+  const venuesWithScores = await Promise.all(
+    venues.map(async (venue) => ({
+      ...venue,
+      taste_score: await getTasteScore(userId, venue.venue_id),
+    }))
+  );
+
+  return venuesWithScores;
 }
 
 /**

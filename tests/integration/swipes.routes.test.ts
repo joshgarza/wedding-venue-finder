@@ -12,7 +12,8 @@ vi.mock('../../src/api/services/swipe.service');
 vi.mock('../../src/api/utils/jwt.utils');
 vi.mock('../../src/api/services/user.service');
 vi.mock('../../db/db-config', () => ({
-  db: vi.fn()
+  db: vi.fn(),
+  getDb: vi.fn(() => vi.fn())
 }));
 
 describe('Swipes Routes', () => {
