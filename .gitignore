@@ -9,3 +9,4 @@ package-lock.json
 !.claude/hooks/
 !.claude/hooks/*
 *.log
+docker.sh
