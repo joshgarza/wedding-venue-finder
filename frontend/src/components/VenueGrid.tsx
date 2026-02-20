@@ -1,4 +1,5 @@
 import type { ApiVenue } from '../types';
+import { toFullImageUrl } from '../utils/image-url';
 
 interface VenueGridProps {
   venues: ApiVenue[];
@@ -114,7 +115,7 @@ function VenueCard({ venue, onClick, onSaveToggle, isSaved }: VenueCardProps) {
           width: '100%',
           height: 200,
           background: venue.thumbnail
-            ? `url(${venue.thumbnail})`
+            ? `url(${toFullImageUrl(venue.thumbnail)})`
             : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
