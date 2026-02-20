@@ -80,6 +80,10 @@ function VenueCard({ venue, onClick, onSaveToggle, isSaved }: VenueCardProps) {
     const img = new Image();
     img.src = thumbnailUrl;
     img.onerror = () => setImgError(true);
+    return () => {
+      img.onerror = null;
+      img.onload = null;
+    };
   }, [thumbnailUrl]);
 
   const showImage = thumbnailUrl && !imgError;
