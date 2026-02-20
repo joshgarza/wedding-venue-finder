@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import type { ApiVenue } from '../types';
 import { toFullImageUrl } from '../utils/image-url';
 
@@ -70,6 +71,18 @@ interface VenueCardProps {
 }
 
 function VenueCard({ venue, onClick, onSaveToggle, isSaved }: VenueCardProps) {
+  const [imgError, setImgError] = useState(false);
+  const thumbnailUrl = venue.thumbnail ? toFullImageUrl(venue.thumbnail) : null;
+
+  useEffect(() => {
+    if (!thumbnailUrl) return;
+    setImgError(false);
+    const img = new Image();
+    img.src = thumbnailUrl;
+    img.onerror = () => setImgError(true);
+  }, [thumbnailUrl]);
+
+  const showImage = thumbnailUrl && !imgError;
   const tasteScore = venue.taste_score !== undefined && venue.taste_score !== null ? Math.round(venue.taste_score * 100) : null;
 
   const getTasteScoreColor = (score: number) => {
@@ -114,14 +127,20 @@ function VenueCard({ venue, onClick, onSaveToggle, isSaved }: VenueCardProps) {
         style={{
           width: '100%',
           height: 200,
-          background: venue.thumbnail
-            ? `url(${toFullImageUrl(venue.thumbnail)})`
-            : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: showImage
+            ? `url(${thumbnailUrl})`
+            : '#f3f4f6',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
+        {!showImage && (
+          <span style={{ color: '#9ca3af', fontSize: 14 }}>No photo available</span>
+        )}
         {/* Taste Score Badge */}
         {tasteScore !== null && (
           <div
