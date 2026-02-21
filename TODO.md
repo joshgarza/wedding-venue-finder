@@ -557,6 +557,21 @@ Renamed `delayMx` to `delayMs` on line 19.
 
 ---
 
+### 4.19 Two-Pass Crawl — Lightweight Fetch with crawl4ai Fallback
+**Priority:** MEDIUM
+**Status:** :x: Not Started
+**Affects:** `src/pipeline/stage_2_crawl.ts`, new `src/utils/page-fetcher.ts`
+
+**Problem:** Stage 2 uses crawl4ai (Playwright headless browser, 1GB shared memory) for every page in the BFS — ~111 browser renders per venue. Most wedding venue sites are server-rendered and don't need a headless browser.
+
+**Solution:** Two-pass approach: try lightweight `axios` GET + `turndown` HTML-to-markdown first, fall back to crawl4ai only when SPA detected (per-venue decision on homepage). Expected 70-85% of venues handled by lightweight pass, 3-10x faster.
+
+**Full design:** See [`docs/TWO_PASS_CRAWL_PLAN.md`](docs/TWO_PASS_CRAWL_PLAN.md) for architecture, SPA detection heuristic, code snippets, edge cases, and testing strategy.
+
+**New deps:** `turndown` + `@types/turndown`
+
+---
+
 ## Phase 5: Testing, Documentation & Deployment
 
 ### 5.1 Frontend Test Infrastructure
@@ -638,9 +653,9 @@ Renamed `delayMx` to `delayMs` on line 19.
 | **1: Data Collection** | 0 | 0 | 2 | 2 |
 | **2: Frontend Core** | 0 | 2 | 0 | 2 |
 | **3: Frontend Supporting** | 0 | 4 | 0 | 4 |
-| **4: Tech Debt** | 1 | 0 | 13 | 14 |
+| **4: Tech Debt** | 1 | 0 | 14 | 15 |
 | **5: Testing/Docs/Deploy** | 0 | 1 | 3 | 4 |
-| **TOTAL** | **8** | **8** | **19** | **35** |
+| **TOTAL** | **8** | **8** | **20** | **36** |
 
 ---
 
