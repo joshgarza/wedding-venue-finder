@@ -122,6 +122,44 @@ Renamed `delayMx` to `delayMs` on line 19.
 
 ---
 
+### 1.1a Re-run Enrichment on Crawled Venues
+**Priority:** CRITICAL
+**Status:** :x: Not Started
+**Depends On:** 1.1 (crawl + images complete)
+
+**Context:** As of 2026-02-21, Stages 1-3 are complete: 309 venues have markdown, 359 have images (43,984 files, 7.8 GB). However, Stage 4 (Enrichment) was originally run **before** crawling, so the LLM only had OSM name/tags to work with. Result: only 60 venues are marked `is_wedding_venue = true`. The 299 newly crawled venues (all pre-vetted "yes") still show `is_wedding_venue = false` because the LLM couldn't confirm without website content. These venues won't appear in the frontend until enrichment is re-run.
+
+**Model change — MUST DO BEFORE RUNNING:**
+- **Do NOT use `phi3`** — it is a weak model for structured JSON extraction tasks
+- **Pull `qwen2.5:7b`** (Qwen 2.5 was explicitly trained for structured JSON output):
+  ```bash
+  docker compose exec ollama ollama pull qwen2.5:7b
+  ```
+- **Update `.env`:**
+  ```
+  OLLAMA_MODEL=qwen2.5:7b
+  ```
+- **Hardware note:** GTX 1070 Ti with 8 GB VRAM. The `qwen2.5:7b` Q4_K_M quantization (4.7 GB) fits but is tight. If inference is very slow (VRAM spill to RAM), fall back to `qwen2.5:3b` which runs comfortably at ~2.5 GB. Both share the same JSON-focused training improvements.
+- `gemma2:9b` was also considered but requires ~6.8 GB VRAM — too large for this GPU.
+
+**Tasks:**
+- [ ] Pull the new model (see above)
+- [ ] Update `OLLAMA_MODEL` in `.env` (and `wedding-venue-finder-shared/.env` template)
+- [ ] Run enrichment stage:
+  ```bash
+  npm run pipeline -- --stage=enrichment
+  ```
+- [ ] Verify results:
+  ```sql
+  SELECT COUNT(*) FROM venues WHERE is_wedding_venue = true;
+  -- Expect: significantly more than 60 (most of the 309 crawled venues should now be classified)
+  ```
+- [ ] Confirm venues appear in frontend at `localhost:5174`
+
+**Why this works:** The enrichment stage filters on `whereNotNull('raw_markdown').where('lodging_capacity', 0)`, which matches all 299 newly crawled venues that need re-classification.
+
+---
+
 ### 1.2 Generate CLIP Embeddings
 **Priority:** CRITICAL
 **Status:** :x: Not Started
@@ -441,6 +479,33 @@ Renamed `delayMx` to `delayMs` on line 19.
 
 ---
 
+### 4.18 Seed Data Leaks Into Live Venue Results
+**Priority:** HIGH
+**Status:** :x: Not Started
+
+**Bug:** Seed venues (50 dummy venues from `bin/seed.ts`) appear alongside real pipeline-discovered venues in API results. Seed venues share photos from a pool of only 50 picsum IDs, causing duplicate images across venues. There is no mechanism to distinguish seed data from live data.
+
+**Root Cause:**
+- `bin/seed.ts` creates 50 venues with `osm_id: "node/seed_1"` through `"node/seed_50"`, but this is just a naming convention — no `is_seed` column exists
+- Seed venues are created with `pre_vetting_status: 'yes'`, `is_wedding_venue: true`, `is_active: true` — matching all production filters
+- `venue.service.ts:searchVenues()` filters only by `is_active` and `is_wedding_venue`, so seed data is served to users
+- 150-250 image draws from a pool of 50 guarantees photo collisions across seed venues
+
+**Fix (recommended):**
+1. Add `is_seed BOOLEAN DEFAULT false` column to `venues` via migration
+2. Update `bin/seed.ts` to set `is_seed: true` on seeded venues
+3. Filter `WHERE is_seed = false` in `venue.service.ts` search queries
+
+**Details:** See `PHOTO_FINDINGS.md` for full investigation, SQL verification queries, and alternative fix options.
+
+**Key Files:**
+| File | Role |
+|------|------|
+| `bin/seed.ts` | Creates 50 dummy venues with picsum photos |
+| `src/api/services/venue.service.ts` | Venue search API (no seed filtering) |
+
+---
+
 ### 4.14 `docker-compose.yml` — Insecure JWT_SECRET default
 **Priority:** HIGH
 **File:** `docker-compose.yml`, `docker-compose.worktree.yml`
@@ -573,9 +638,9 @@ Renamed `delayMx` to `delayMs` on line 19.
 | **1: Data Collection** | 0 | 0 | 2 | 2 |
 | **2: Frontend Core** | 0 | 2 | 0 | 2 |
 | **3: Frontend Supporting** | 0 | 4 | 0 | 4 |
-| **4: Tech Debt** | 1 | 0 | 12 | 13 |
+| **4: Tech Debt** | 1 | 0 | 13 | 14 |
 | **5: Testing/Docs/Deploy** | 0 | 1 | 3 | 4 |
-| **TOTAL** | **8** | **8** | **18** | **34** |
+| **TOTAL** | **8** | **8** | **19** | **35** |
 
 ---
 
